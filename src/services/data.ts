@@ -1,0 +1,201 @@
+import { supabase } from './supabase';
+import { Chapter, User, LessonSection } from '../types';
+
+// Helper to convert plain text to basic HTML
+function convertTextToHtml(text: string): string {
+  if (!text) return '';
+  
+  return text
+    .split('\n\n')
+    .map(paragraph => {
+      const trimmed = paragraph.trim();
+      if (!trimmed) return '';
+      
+      // Convert **bold** to <strong>
+      const html = trimmed.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+      
+      // Convert bullet points
+      if (html.startsWith('- ')) {
+        const items = html.split('\n').filter(line => line.trim().startsWith('- '));
+        const listItems = items.map(item => `<li>${item.substring(2).trim()}</li>`).join('');
+        return `<ul>${listItems}</ul>`;
+      }
+      
+      // Regular paragraph
+      return `<p>${html}</p>`;
+    })
+    .join('');
+}
+
+const USER_TABLE = (
+  import.meta.env.VITE_USER_TABLE as string
+) || '';
+const CHAPTERS_TABLE = (
+  import.meta.env.VITE_CHAPTERS_TABLE as string
+) || 'chapters';
+const TOPICS_TABLE = (
+  import.meta.env.VITE_TOPICS_TABLE as string
+) || 'topics';
+// Removed LESSON_SECTIONS_TABLE - using topics table only
+
+export async function fetchUserData(): Promise<User | null> {
+  try {
+    // Try configured table first, then common fallbacks
+    const candidateTables = [USER_TABLE, 'user_profiles', 'profiles', 'users'].filter(Boolean);
+    for (const table of candidateTables) {
+      const { data, error } = await supabase
+        .from(table)
+        .select('*')
+        .limit(1)
+        .maybeSingle();
+
+      if (!error && data) {
+        // Map flexible shapes into the app's User type with safe fallbacks
+        const user: User = {
+          id: String(data.id ?? data.user_id ?? '1'),
+          name: String(data.name ?? data.full_name ?? data.username ?? 'Learner'),
+          email: String(data.email ?? 'student@example.com'),
+          streak: Number(data.streak ?? 0),
+          completedChapters: Number(data.completed_chapters ?? data.completedChapters ?? 0),
+          totalChapters: Number(data.total_chapters ?? data.totalChapters ?? 0),
+          studyTime: Number(data.study_time ?? data.studyTime ?? 0),
+          averageScore: Number(data.average_score ?? data.averageScore ?? 0),
+          achievements: Number(data.achievements ?? 0),
+          lastTopic: {
+            chapter: String(data.last_chapter_title ?? data.lastChapterTitle ?? ''),
+            topic: String(data.last_topic_title ?? data.lastTopicTitle ?? ''),
+            progress: Number(data.last_topic_progress ?? data.lastTopicProgress ?? 0),
+          },
+        };
+        return user;
+      }
+    }
+  } catch (error) {
+    console.error('fetchUserData error:', error);
+  }
+  return null;
+}
+
+export async function fetchChaptersWithTopics(): Promise<Chapter[]> {
+  try {
+    const { data: chapters, error: chErr } = await supabase
+      .from(CHAPTERS_TABLE)
+      .select('id,title,description,icon,progress,is_unlocked,is_completed,study_time,quizzes')
+      .order('id');
+
+    if (chErr) throw chErr;
+    if (!chapters || chapters.length === 0) return [];
+
+    const chapterIds = chapters.map((c: { id: number }) => c.id);
+    const { data: topics, error: tpErr } = await supabase
+      .from(TOPICS_TABLE)
+      .select('title,chapter_id')
+      .in('chapter_id', chapterIds);
+
+    if (tpErr) throw tpErr;
+
+    const chapterIdToTopics: Record<number, string[]> = {};
+    (topics ?? []).forEach((t: { title: string; chapter_id: number }) => {
+      const cid = Number(t.chapter_id);
+      if (!chapterIdToTopics[cid]) chapterIdToTopics[cid] = [];
+      chapterIdToTopics[cid].push(String(t.title));
+    });
+
+    return chapters.map((ch: {
+      id: number;
+      title?: string;
+      description?: string;
+      icon?: string;
+      progress?: number;
+      is_unlocked?: boolean;
+      isCompleted?: boolean;
+      is_unlockedd?: boolean;
+      is_completed?: boolean;
+      study_time?: number;
+      studyTime?: number;
+      quizzes?: number;
+    }) => ({
+      id: Number(ch.id),
+      title: String(ch.title ?? 'Untitled'),
+      description: String(ch.description ?? ''),
+      icon: String(ch.icon ?? '📘'),
+      progress: Number(ch.progress ?? 0),
+      isUnlocked: Boolean(ch.is_unlocked ?? true),
+      isCompleted: Boolean(ch.is_completed ?? false),
+      topics: chapterIdToTopics[Number(ch.id)] ?? [],
+      studyTime: Number(ch.study_time ?? ch.studyTime ?? 0),
+      quizzes: Number(ch.quizzes ?? 0),
+    }));
+  } catch (error) {
+    console.error('fetchChaptersWithTopics error:', error);
+    return [];
+  }
+}
+
+export async function fetchChapterById(id: number): Promise<Chapter | null> {
+  try {
+    const { data, error } = await supabase
+      .from(CHAPTERS_TABLE)
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    const { data: topicsData } = await supabase
+      .from(TOPICS_TABLE)
+      .select('title')
+      .eq('chapter_id', id);
+
+    const topicTitles = (topicsData ?? []).map((t: { title: string }) => t.title);
+
+    return {
+      id: Number(data.id),
+      title: String(data.title ?? 'Untitled'),
+      description: String(data.description ?? ''),
+      icon: String(data.icon ?? '📘'),
+      progress: Number(data.progress ?? 0),
+      isUnlocked: Boolean(data.is_unlocked ?? data.isUnlocked ?? true),
+      isCompleted: Boolean(data.is_completed ?? data.isCompleted ?? false),
+      topics: topicTitles,
+      studyTime: Number(data.study_time ?? data.studyTime ?? 0),
+      quizzes: Number(data.quizzes ?? 0),
+    };
+  } catch (error) {
+    console.error('fetchChapterById error:', error);
+    return null;
+  }
+}
+
+export async function fetchLessonSectionsByChapter(chapterId: number): Promise<LessonSection[]> {
+  try {
+    // Fetch from your topics table with exact schema
+    const { data: topicsData, error: topicsErr } = await supabase
+      .from(TOPICS_TABLE)
+      .select('id, title, lesson_content, description, order_index')
+      .eq('chapter_id', chapterId)
+      .order('order_index');
+
+    if (topicsErr) throw topicsErr;
+    if (!topicsData || topicsData.length === 0) return [];
+
+    return topicsData.map((row: {
+      id: number;
+      title: string;
+      lesson_content: string;
+      description?: string;
+      order_index: number;
+    }) => ({
+      id: Number(row.id),
+      chapterId: Number(chapterId),
+      orderIndex: Number(row.order_index),
+      title: String(row.title),
+      contentHtml: convertTextToHtml(row.lesson_content || ''),
+    }));
+  } catch (error) {
+    console.error('fetchLessonSectionsByChapter error:', error);
+    return [];
+  }
+}
+
+

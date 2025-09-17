@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navigation/Navbar';
@@ -9,29 +9,30 @@ import Topic from './pages/Topic';
 import { useToast } from './hooks/useToast';
 import { User } from './types';
 import { apiService } from './services/api';
+import { fetchUserData } from './services/data';
+
+// Sample user data - replace with API call
+const sampleUserData: User = {
+  id: '1',
+  name: "Arjun Kumar",
+  email: "arjun.kumar@example.com",
+  streak: 7,
+  completedChapters: 5,
+  totalChapters: 8,
+  studyTime: 24,
+  averageScore: 85,
+  achievements: 12,
+  lastTopic: {
+    chapter: "Algebra",
+    topic: "Quadratic Equations",
+    progress: 60
+  }
+};
 
 function App() {
   const [userData, setUserData] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toasts, showToast, removeToast } = useToast();
-
-  // Sample user data - replace with API call
-  const sampleUserData: User = {
-    id: '1',
-    name: "Arjun Kumar",
-    email: "arjun.kumar@example.com",
-    streak: 7,
-    completedChapters: 5,
-    totalChapters: 8,
-    studyTime: 24,
-    averageScore: 85,
-    achievements: 12,
-    lastTopic: {
-      chapter: "Algebra",
-      topic: "Quadratic Equations",
-      progress: 60
-    }
-  };
 
   useEffect(() => {
     // Initialize MathJax if available
@@ -39,18 +40,18 @@ function App() {
       window.MathJax.typesetPromise?.();
     }
 
-    // Simulate loading user data
+    // Load user data from database (fallback to sample)
     const loadUserData = async () => {
       try {
         setIsLoading(true);
-        
-        // In a real app, you would call:
-        // const userData = await apiService.getUserData();
-        // setUserData(userData);
-        
-        // For demo purposes, using sample data
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
-        setUserData(sampleUserData);
+        const dbUser = await fetchUserData();
+        if (dbUser) {
+          setUserData(dbUser);
+        } else {
+          // Fallback demo
+          await new Promise(resolve => setTimeout(resolve, 500));
+          setUserData(sampleUserData);
+        }
         
       } catch (error) {
         console.error('Failed to load user data:', error);
@@ -98,6 +99,7 @@ function App() {
               <Route path="/" element={<Dashboard userData={userData} />} />
               <Route path="/chapters" element={<Chapters />} />
               <Route path="/chapters/:chapterId" element={<Topic />} />
+              <Route path="/chapters/:chapterId/topics/:topicId" element={<Topic />} />
               <Route path="/topics/:topicId" element={<Topic />} />
             </Routes>
           </main>

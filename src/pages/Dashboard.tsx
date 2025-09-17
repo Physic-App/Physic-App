@@ -1,16 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { supabase } from '../services/supabase';
 import { Link } from 'react-router-dom';
 import { User } from '../types';
 import ProgressRing from '../components/Common/ProgressRing';
 import { 
-  Clock, 
-  Target, 
   Award, 
   BookOpen, 
-  Calendar,
-  TrendingUp,
   Play,
-  HelpCircle
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -19,8 +15,10 @@ interface DashboardProps {
 
 const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
   const [currentQuote, setCurrentQuote] = useState<{text: string; author: string} | null>(null);
+  const [lastChapterId, setLastChapterId] = useState<number | null>(null);
+  const [lastTopicId, setLastTopicId] = useState<number | null>(null);
 
-  const motivationalQuotes = [
+  const motivationalQuotes = useMemo(() => ([
     {
       text: "Mathematics is not about numbers, equations, or algorithms: it is about understanding.",
       author: "William Paul Thurston"
@@ -37,12 +35,41 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
       text: "Success is the sum of small efforts repeated day in and day out.",
       author: "Robert Collier"
     }
-  ];
+  ]), []);
 
   useEffect(() => {
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
     setCurrentQuote(randomQuote);
-  }, []);
+  }, [motivationalQuotes]);
+
+  // Resolve real chapter/topic IDs for the Continue link
+  useEffect(() => {
+    const resolveIds = async () => {
+      if (!userData?.lastTopic?.chapter) return;
+      // Find chapter id by title
+      const { data: chapter, error: chErr } = await supabase
+        .from('chapters')
+        .select('id')
+        .eq('title', userData.lastTopic.chapter)
+        .maybeSingle();
+      if (chErr || !chapter) return;
+      setLastChapterId(chapter.id as number);
+
+      // Find topic id by title within chapter
+      if (userData.lastTopic.topic) {
+        const { data: topic, error: tpErr } = await supabase
+          .from('topics')
+          .select('id')
+          .eq('chapter_id', chapter.id)
+          .eq('title', userData.lastTopic.topic)
+          .maybeSingle();
+        if (!tpErr && topic) {
+          setLastTopicId(topic.id as number);
+        }
+      }
+    };
+    resolveIds();
+  }, [userData?.lastTopic?.chapter, userData?.lastTopic?.topic]);
 
   if (!userData) {
     return (
@@ -52,7 +79,9 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
     );
   }
 
-  const overallProgress = (userData.completedChapters / userData.totalChapters) * 100;
+  const overallProgress = userData.totalChapters > 0
+    ? (userData.completedChapters / userData.totalChapters) * 100
+    : 0;
 
   return (
     <div className="min-h-screen pt-16 bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
@@ -105,25 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
                   </div>
                 </div>
 
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center gap-4 hover:shadow-lg transition-all duration-200">
-                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
-                    <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{userData.studyTime}</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Hours This Month</div>
-                  </div>
-                </div>
-
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center gap-4 hover:shadow-lg transition-all duration-200">
-                  <div className="w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center">
-                    <Target className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{userData.averageScore}%</div>
-                    <div className="text-sm text-gray-600 dark:text-gray-400">Avg Quiz Score</div>
-                  </div>
-                </div>
+                {/* Study time and quiz score cards removed as per requirements */}
 
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center gap-4 hover:shadow-lg transition-all duration-200">
                   <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -156,7 +167,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
               </div>
 
               <Link 
-                to={`/chapters/1`}
+                to={
+                  lastChapterId && lastTopicId
+                    ? `/chapters/${lastChapterId}/topics/${lastTopicId}`
+                    : lastChapterId
+                      ? `/chapters/${lastChapterId}`
+                      : '/chapters'
+                }
                 className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
                 <Play className="w-4 h-4" />

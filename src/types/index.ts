@@ -59,3 +59,11 @@ export interface ToastMessage {
   type: 'success' | 'error' | 'warning' | 'info';
   duration?: number;
 }
+
+export interface LessonSection {
+  id: number;
+  chapterId: number;
+  orderIndex: number;
+  title: string;
+  contentHtml: string;
+}
