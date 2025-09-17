@@ -1,6 +1,13 @@
 import { supabase } from './supabase';
 import { Chapter, User, LessonSection } from '../types';
 
+// Check if Supabase is properly configured
+const isSupabaseConfigured = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL;
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  return url && key && !url.includes('your-project-ref') && !key.includes('your-anon-key');
+};
+
 // Helper to convert plain text to basic HTML
 function convertTextToHtml(text: string): string {
   if (!text) return '';
@@ -39,6 +46,11 @@ const TOPICS_TABLE = (
 // Removed LESSON_SECTIONS_TABLE - using topics table only
 
 export async function fetchUserData(): Promise<User | null> {
+  // Return null if Supabase is not configured - app will use fallback data
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
   try {
     // Try configured table first, then common fallbacks
     const candidateTables = [USER_TABLE, 'user_profiles', 'profiles', 'users'].filter(Boolean);
@@ -77,6 +89,11 @@ export async function fetchUserData(): Promise<User | null> {
 }
 
 export async function fetchChaptersWithTopics(): Promise<Chapter[]> {
+  // Return empty array if Supabase is not configured - app will use fallback data
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
   try {
     const { data: chapters, error: chErr } = await supabase
       .from(CHAPTERS_TABLE)
@@ -133,6 +150,11 @@ export async function fetchChaptersWithTopics(): Promise<Chapter[]> {
 }
 
 export async function fetchChapterById(id: number): Promise<Chapter | null> {
+  // Return null if Supabase is not configured - app will use fallback data
+  if (!isSupabaseConfigured()) {
+    return null;
+  }
+
   try {
     const { data, error } = await supabase
       .from(CHAPTERS_TABLE)
@@ -168,6 +190,11 @@ export async function fetchChapterById(id: number): Promise<Chapter | null> {
 }
 
 export async function fetchLessonSectionsByChapter(chapterId: number): Promise<LessonSection[]> {
+  // Return empty array if Supabase is not configured - app will use fallback data
+  if (!isSupabaseConfigured()) {
+    return [];
+  }
+
   try {
     // Fetch from your topics table with exact schema
     const { data: topicsData, error: topicsErr } = await supabase
