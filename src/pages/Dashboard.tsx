@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { Link } from 'react-router-dom';
 import { User } from '../types';
+import { useAuth } from '../hooks/useAuth';
 import ProgressRing from '../components/Common/ProgressRing';
 import { 
   Award, 
@@ -14,9 +15,11 @@ interface DashboardProps {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
+  const { user } = useAuth();
   const [currentQuote, setCurrentQuote] = useState<{text: string; author: string} | null>(null);
   const [lastChapterId, setLastChapterId] = useState<number | null>(null);
   const [lastTopicId, setLastTopicId] = useState<number | null>(null);
+  const [userProfile, setUserProfile] = useState<{name: string; isNewUser: boolean} | null>(null);
 
   const motivationalQuotes = useMemo(() => ([
     {
@@ -41,6 +44,39 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
     setCurrentQuote(randomQuote);
   }, [motivationalQuotes]);
+
+  // Load user profile for personalized greeting
+  useEffect(() => {
+    const loadUserProfile = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile, error } = await supabase
+          .from('user_profiles')
+          .select('onboarding_completed')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        console.log('Profile check:', { profile, error, userId: user.id });
+        
+        const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Learner';
+        // User is new if: no profile exists OR profile exists but onboarding not completed
+        const isNewUser = !profile || !profile.onboarding_completed;
+        
+        console.log('User status:', { name, isNewUser, profileExists: !!profile });
+        
+        setUserProfile({ name, isNewUser });
+      } catch (error) {
+        console.error('Error loading user profile:', error);
+        setUserProfile({ 
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Learner', 
+          isNewUser: false 
+        });
+      }
+    };
+    
+    loadUserProfile();
+  }, [user]);
 
   // Resolve real chapter/topic IDs for the Continue link
   useEffect(() => {
@@ -93,10 +129,16 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
               <div className="text-center md:text-left">
                 <h2 className="text-3xl md:text-4xl font-bold mb-2">
-                  Welcome back, {userData.name.split(' ')[0]}! 👋
+                  {userProfile?.isNewUser 
+                    ? `Welcome to Physics, ${userProfile.name}! 🎉`
+                    : `Welcome back, ${userProfile?.name || userData?.name?.split(' ')[0] || 'Learner'}! 👋`
+                  }
                 </h2>
                 <p className="text-xl opacity-90">
-                  Ready to continue your math journey today?
+                  {userProfile?.isNewUser 
+                    ? "Let's start your physics learning journey!"
+                    : "Ready to continue your physics journey today?"
+                  }
                 </p>
               </div>
               
@@ -213,7 +255,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
         <section>
           <h3 className="text-2xl font-semibold text-center mb-8 text-gray-900 dark:text-gray-100">Quick Actions</h3>
           
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link 
               to="/chapters"
               className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-600"
@@ -226,19 +268,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
             </Link>
 
             <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-green-200 dark:hover:border-green-600 cursor-pointer">
-              <div className="text-4xl mb-4">🧮</div>
+              <div className="text-4xl mb-4">🎥</div>
               <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 group-hover:text-green-600 dark:group-hover:text-green-400">
-                Practice Quiz
+                Browse Video
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Test your knowledge</p>
-            </div>
-
-            <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-yellow-200 dark:hover:border-yellow-600 cursor-pointer">
-              <div className="text-4xl mb-4">📈</div>
-              <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 group-hover:text-yellow-600 dark:group-hover:text-yellow-400">
-                View Progress
-              </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Track your learning journey</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Watch learning videos</p>
             </div>
 
             <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-600 cursor-pointer">

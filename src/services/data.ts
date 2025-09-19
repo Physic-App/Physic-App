@@ -80,7 +80,9 @@ export async function fetchChaptersWithTopics(): Promise<Chapter[]> {
   try {
     const { data: chapters, error: chErr } = await supabase
       .from(CHAPTERS_TABLE)
-      .select('id,title,description,icon,progress,is_unlocked,is_completed,study_time,quizzes')
+      .select('id,title,description,icon,order_index')
+      .gte('id', 1)  // Only physics chapters (1-10)
+      .lte('id', 10)
       .order('id');
 
     if (chErr) throw chErr;
@@ -106,25 +108,18 @@ export async function fetchChaptersWithTopics(): Promise<Chapter[]> {
       title?: string;
       description?: string;
       icon?: string;
-      progress?: number;
-      is_unlocked?: boolean;
-      isCompleted?: boolean;
-      is_unlockedd?: boolean;
-      is_completed?: boolean;
-      study_time?: number;
-      studyTime?: number;
-      quizzes?: number;
+      order_index?: number;
     }) => ({
       id: Number(ch.id),
       title: String(ch.title ?? 'Untitled'),
       description: String(ch.description ?? ''),
       icon: String(ch.icon ?? '📘'),
-      progress: Number(ch.progress ?? 0),
-      isUnlocked: Boolean(ch.is_unlocked ?? true),
-      isCompleted: Boolean(ch.is_completed ?? false),
+      progress: 0, // Default since your table doesn't have progress
+      isUnlocked: true, // Default since your table doesn't have unlock status
+      isCompleted: false, // Default since your table doesn't have completion status
       topics: chapterIdToTopics[Number(ch.id)] ?? [],
-      studyTime: Number(ch.study_time ?? ch.studyTime ?? 0),
-      quizzes: Number(ch.quizzes ?? 0),
+      studyTime: 0, // Default since your table doesn't have study time
+      quizzes: 0, // Default since your table doesn't have quiz count
     }));
   } catch (error) {
     console.error('fetchChaptersWithTopics error:', error);
@@ -136,7 +131,7 @@ export async function fetchChapterById(id: number): Promise<Chapter | null> {
   try {
     const { data, error } = await supabase
       .from(CHAPTERS_TABLE)
-      .select('*')
+      .select('id,title,description,icon,order_index')
       .eq('id', id)
       .maybeSingle();
 
@@ -154,12 +149,12 @@ export async function fetchChapterById(id: number): Promise<Chapter | null> {
       title: String(data.title ?? 'Untitled'),
       description: String(data.description ?? ''),
       icon: String(data.icon ?? '📘'),
-      progress: Number(data.progress ?? 0),
-      isUnlocked: Boolean(data.is_unlocked ?? data.isUnlocked ?? true),
-      isCompleted: Boolean(data.is_completed ?? data.isCompleted ?? false),
+      progress: 0, // Default since your table doesn't have progress
+      isUnlocked: true, // Default since your table doesn't have unlock status
+      isCompleted: false, // Default since your table doesn't have completion status
       topics: topicTitles,
-      studyTime: Number(data.study_time ?? data.studyTime ?? 0),
-      quizzes: Number(data.quizzes ?? 0),
+      studyTime: 0, // Default since your table doesn't have study time
+      quizzes: 0, // Default since your table doesn't have quiz count
     };
   } catch (error) {
     console.error('fetchChapterById error:', error);

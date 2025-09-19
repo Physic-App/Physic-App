@@ -4,12 +4,13 @@ const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 if (!supabaseUrl || !supabaseKey) {
-  // Surface a helpful dev-time message without crashing the app
-  // Ensure you have VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY set in your .env
-  // Example:
-  // VITE_SUPABASE_URL=https://your-project.supabase.co
-  // VITE_SUPABASE_ANON_KEY=eyJhbGci...
-  console.warn('[Supabase] Missing env vars: VITE_SUPABASE_URL or VITE_SUPABASE_ANON_KEY')
+  console.error('❌ [Supabase] Missing credentials!');
+  console.error('Add these to your .env file:');
+  console.error('VITE_SUPABASE_URL=https://jpbsslcrqyucaucznaxu.supabase.co');
+  console.error('VITE_SUPABASE_ANON_KEY=your-anon-key-from-supabase');
+  console.error('Then restart the dev server.');
+} else {
+  console.log('✅ [Supabase] Connected to:', supabaseUrl);
 }
 
 export const supabase = createClient(supabaseUrl || 'http://localhost', supabaseKey || 'anonymous')

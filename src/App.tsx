@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from './contexts/ThemeContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Navbar from './components/Navigation/Navbar';
 import ToastContainer from './components/Toast/ToastContainer';
 import Dashboard from './pages/Dashboard';
 import Chapters from './pages/Chapters';
 import Topic from './pages/Topic';
+import Auth from './pages/Auth';
+import Onboarding from './pages/Onboarding';
 import { useToast } from './hooks/useToast';
 import { User } from './types';
 import { apiService } from './services/api';
@@ -89,22 +92,51 @@ function App() {
 
   return (
     <ThemeProvider>
-      <Router>
-        <div className="App font-nunito bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-          <Navbar onLogout={handleLogout} />
-          <ToastContainer toasts={toasts} onRemove={removeToast} />
-          
-          <main>
+      <AuthProvider>
+        <Router>
+          <div className="App font-nunito bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+            <ToastContainer toasts={toasts} onRemove={removeToast} />
+            
             <Routes>
-              <Route path="/" element={<Dashboard userData={userData} />} />
-              <Route path="/chapters" element={<Chapters />} />
-              <Route path="/chapters/:chapterId" element={<Topic />} />
-              <Route path="/chapters/:chapterId/topics/:topicId" element={<Topic />} />
-              <Route path="/topics/:topicId" element={<Topic />} />
+              {/* Auth Routes */}
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              
+              {/* Main App Routes (for now, keeping them open for testing) */}
+              <Route path="/" element={
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Dashboard userData={userData} />
+                </div>
+              } />
+              <Route path="/chapters" element={
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Chapters />
+                </div>
+              } />
+              <Route path="/chapters/:chapterId" element={
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Topic />
+                </div>
+              } />
+              <Route path="/chapters/:chapterId/topics/:topicId" element={
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Topic />
+                </div>
+              } />
+              <Route path="/topics/:topicId" element={
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Topic />
+                </div>
+              } />
             </Routes>
-          </main>
-        </div>
-      </Router>
+          </div>
+        </Router>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

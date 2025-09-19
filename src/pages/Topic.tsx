@@ -2,18 +2,35 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import Breadcrumb from '../components/Common/Breadcrumb';
 import { Chapter, LessonSection, TopicData } from '../types';
-import { Play, Video } from 'lucide-react';
+import { Play, Video, CheckCircle } from 'lucide-react';
 import { fetchChapterById, fetchLessonSectionsByChapter } from '../services/data';
 import { supabase } from '../services/supabase';
+import { progressService } from '../services/progress';
+import { useAuth } from '../hooks/useAuth';
+import { useToast } from '../hooks/useToast';
 
 const Topic: React.FC = () => {
   const { chapterId } = useParams();
+  const { user } = useAuth();
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<'lesson' | 'video'>('lesson');
+  const [activeVideoTab, setActiveVideoTab] = useState<1 | 2 | 3>(1);
   const [chapterData, setChapterData] = useState<Chapter | null>(null);
   const [topicData, setTopicData] = useState<TopicData | null>(null);
   const [lessonSections, setLessonSections] = useState<LessonSection[]>([]);
   const [currentSectionIndex, setCurrentSectionIndex] = useState(0);
-  const [videoData, setVideoData] = useState<{ title: string; description: string; duration: string; thumbnail: string | null; videoUrl: string | null; topics: string[]; allVideos: unknown[] } | null>(null);
+  const [completedSections, setCompletedSections] = useState<number[]>([]);
+  const [watchedVideos, setWatchedVideos] = useState<number[]>([]);
+  const [allVideos, setAllVideos] = useState<Array<{
+    id: number;
+    title: string;
+    description: string;
+    duration: number;
+    youtube_url: string;
+    youtube_id: string;
+    thumbnail_url?: string;
+    order_index: number;
+  }>>([]);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -21,7 +38,22 @@ const Topic: React.FC = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const getVideoDataForChapter = useCallback(async (id: number) => {
+  const convertYouTubeUrl = (url: string, videoId: string): string => {
+    // Convert various YouTube URL formats to embed URL
+    if (url.includes('youtube.com/embed/')) return url;
+    if (url.includes('youtu.be/')) {
+      const id = url.split('youtu.be/')[1]?.split('?')[0];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+    if (url.includes('youtube.com/watch?v=')) {
+      const id = url.split('v=')[1]?.split('&')[0];
+      return `https://www.youtube.com/embed/${id}`;
+    }
+    // Fallback to video ID
+    return `https://www.youtube.com/embed/${videoId}`;
+  };
+
+  const getVideosForChapter = useCallback(async (id: number) => {
     try {
       const { data: videos, error } = await supabase
         .from('videos')
@@ -29,30 +61,10 @@ const Topic: React.FC = () => {
         .eq('chapter_id', id)
         .order('order_index');
       if (error) throw error;
-      if (videos && videos.length > 0) {
-        const v = videos[0];
-        return {
-          title: v.title,
-          description: v.description,
-          duration: formatDuration(v.duration),
-          thumbnail: v.thumbnail_url || `https://img.youtube.com/vi/${v.youtube_id}/maxresdefault.jpg`,
-          videoUrl: v.youtube_url || `https://www.youtube.com/embed/${v.youtube_id}`,
-          topics: [],
-          allVideos: videos,
-        };
-      }
-      return {
-        title: 'Video Coming Soon',
-        description: "We're preparing high-quality video content for this topic",
-        duration: '00:00',
-        thumbnail: null,
-        videoUrl: null,
-        topics: [],
-        allVideos: [],
-      };
+      return videos || [];
     } catch (e) {
-      console.error('Error fetching video:', e);
-      return null;
+      console.error('Error fetching videos:', e);
+      return [];
     }
   }, []);
 
@@ -84,11 +96,19 @@ const Topic: React.FC = () => {
       }
       setCurrentSectionIndex(0);
 
-      const vd = await getVideoDataForChapter(id);
-      setVideoData(vd);
+      const videos = await getVideosForChapter(id);
+      setAllVideos(videos);
+
+      // Load user progress
+      if (user) {
+        const completedSecs = await progressService.getCompletedSections(id);
+        const watchedVids = await progressService.getWatchedVideos(id);
+        setCompletedSections(completedSecs);
+        setWatchedVideos(watchedVids);
+      }
     };
     load();
-  }, [chapterId, getVideoDataForChapter]);
+  }, [chapterId, getVideosForChapter, user]);
 
   if (!topicData) {
     return (
@@ -156,11 +176,49 @@ const Topic: React.FC = () => {
                   <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6 pb-2 border-b border-gray-200 dark:border-gray-600">{lessonSections[currentSectionIndex]?.title || 'Lesson'}</h3>
                   <div className="prose max-w-none text-gray-700 dark:text-gray-300" dangerouslySetInnerHTML={{ __html: lessonSections[currentSectionIndex]?.contentHtml || '' }} />
                 </div>
-                <div className="flex justify-between pt-8 border-t border-gray-200 dark:border-gray-600">
-                  <button onClick={() => setCurrentSectionIndex((i) => Math.max(0, i - 1))} disabled={currentSectionIndex === 0} className="flex items-center gap-2 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">← Previous Lesson</button>
+                <div className="flex justify-between items-center pt-8 border-t border-gray-200 dark:border-gray-600">
+                  <button 
+                    onClick={() => setCurrentSectionIndex((i) => Math.max(0, i - 1))} 
+                    disabled={currentSectionIndex === 0} 
+                    className="flex items-center gap-2 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    ← Previous Lesson
+                  </button>
+
                   <div className="flex gap-3">
-                    <button className="flex items-center gap-2 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">Preview</button>
-                    <button onClick={() => setCurrentSectionIndex((i) => Math.min(lessonSections.length - 1, i + 1))} disabled={currentSectionIndex === lessonSections.length - 1} className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">Next Lesson →</button>
+                    {user && lessonSections[currentSectionIndex] && (
+                      <button
+                        onClick={async () => {
+                          try {
+                            const sectionId = lessonSections[currentSectionIndex].id;
+                            const chId = parseInt(chapterId || '0');
+                            await progressService.markSectionCompleted(chId, sectionId, 5); // 5 min default study time
+                            setCompletedSections(prev => [...prev, sectionId]);
+                            showToast('Section completed! 🎉', 'success');
+                          } catch (error) {
+                            console.error('Error marking section complete:', error);
+                            showToast('Failed to save progress', 'error');
+                          }
+                        }}
+                        disabled={completedSections.includes(lessonSections[currentSectionIndex]?.id)}
+                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                          completedSections.includes(lessonSections[currentSectionIndex]?.id)
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-not-allowed'
+                            : 'bg-green-600 text-white hover:bg-green-700'
+                        }`}
+                      >
+                        <CheckCircle className="w-4 h-4" />
+                        {completedSections.includes(lessonSections[currentSectionIndex]?.id) ? 'Completed' : 'Mark Complete'}
+                      </button>
+                    )}
+
+                    <button 
+                      onClick={() => setCurrentSectionIndex((i) => Math.min(lessonSections.length - 1, i + 1))} 
+                      disabled={currentSectionIndex === lessonSections.length - 1} 
+                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      Next Lesson →
+                    </button>
                   </div>
                 </div>
               </div>
@@ -168,26 +226,109 @@ const Topic: React.FC = () => {
 
             {activeTab === 'video' && (
               <div className="max-w-4xl mx-auto">
+                {/* Video Sub-tabs */}
+                <div className="flex justify-center mb-8">
+                  <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                    {[1, 2, 3].map((videoNum) => (
+                      <button
+                        key={videoNum}
+                        onClick={() => setActiveVideoTab(videoNum as 1 | 2 | 3)}
+                        className={`px-4 py-2 rounded-md font-medium transition-all duration-200 ${
+                          activeVideoTab === videoNum
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400'
+                        }`}
+                      >
+                        Video {videoNum}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {(() => {
+                  const currentVideo = allVideos.find(v => v.order_index === activeVideoTab);
+                  const embedUrl = currentVideo ? convertYouTubeUrl(currentVideo.youtube_url, currentVideo.youtube_id) : null;
+                  
+                  return (
+                    <>
                       <div className="text-center mb-8">
-                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Video Lesson: {videoData?.title || topicData?.title || 'Loading...'}</h3>
-                  <p className="text-lg text-gray-600 dark:text-gray-400">{videoData?.description || 'Watch our comprehensive video explanation of this topic'}</p>
+                        <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-4">
+                          {currentVideo?.title || `Video ${activeVideoTab} Coming Soon`}
+                        </h3>
+                        <p className="text-lg text-gray-600 dark:text-gray-400">
+                          {currentVideo?.description || "We're preparing high-quality video content for this section"}
+                        </p>
                       </div>
+
                 <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden mb-8">
                         <div className="aspect-video bg-gray-900 relative">
-                          {videoData?.videoUrl ? (
-                      <iframe className="w-full h-full" src={videoData.videoUrl} title={videoData.title || 'Lesson Video'} frameBorder={0} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen />
+                          {embedUrl ? (
+                            <iframe 
+                              className="w-full h-full"
+                              src={embedUrl} 
+                              title={currentVideo?.title || `Video ${activeVideoTab}`} 
+                              frameBorder={0} 
+                              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                              allowFullScreen
+                            />
                           ) : (
                             <div className="absolute inset-0 flex items-center justify-center">
                     <div className="text-center text-white">
                       <Video className="w-16 h-16 mx-auto mb-4 opacity-60" />
-                          <h4 className="text-xl font-semibold mb-2">{videoData?.title || 'Video Coming Soon'}</h4>
-                          <p className="text-gray-300 mb-6">{videoData?.description || "We're preparing high-quality video content for this topic"}</p>
-                          <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2"><Play className="w-4 h-4" />Notify When Available</button>
-                        </div>
-              </div>
-            )}
+                                <h4 className="text-xl font-semibold mb-2">Video {activeVideoTab} Coming Soon</h4>
+                                <p className="text-gray-300 mb-6">We're preparing high-quality video content for this section</p>
+                      <button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors inline-flex items-center gap-2">
+                        <Play className="w-4 h-4" />
+                        Notify When Available
+                      </button>
+                    </div>
+                            </div>
+                          )}
                   </div>
+                  
+                        {currentVideo && (
+                          <div className="p-6 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                                  {currentVideo.title}
+                                </h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                  Duration: {formatDuration(currentVideo.duration)} • Quality: HD
+                                </p>
+                              </div>
+                              
+                              {user && (
+                                <button
+                                  onClick={async () => {
+                                    try {
+                                      const chId = parseInt(chapterId || '0');
+                                      await progressService.markVideoWatched(chId, currentVideo.id, Math.ceil(currentVideo.duration / 60));
+                                      setWatchedVideos(prev => [...prev, currentVideo.id]);
+                                      showToast('Video marked as watched! 🎬', 'success');
+                                    } catch (error) {
+                                      console.error('Error marking video watched:', error);
+                                      showToast('Failed to save progress', 'error');
+                                    }
+                                  }}
+                                  disabled={watchedVideos.includes(currentVideo.id)}
+                                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                                    watchedVideos.includes(currentVideo.id)
+                                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-not-allowed'
+                                      : 'bg-green-600 text-white hover:bg-green-700'
+                                  }`}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  {watchedVideos.includes(currentVideo.id) ? 'Watched' : 'Mark Watched'}
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             )}
           </div>

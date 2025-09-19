@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, X, BookOpen, Home, LogOut, Users } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
+import LogoutModal from '../Common/LogoutModal';
 
 interface NavbarProps {
   onLogout?: () => void;
@@ -9,7 +10,9 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const navLinks = [
     { to: '/', label: 'Dashboard', icon: Home },
@@ -20,9 +23,24 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
   const isActive = (path: string) => location.pathname === path;
 
   const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = () => {
+    // Clear localStorage and redirect to auth page
+    localStorage.clear();
+    setShowLogoutModal(false);
+    setIsMenuOpen(false);
+    navigate('/auth');
+    
+    // Call the onLogout prop if provided
     if (onLogout) {
       onLogout();
     }
+  };
+
+  const cancelLogout = () => {
+    setShowLogoutModal(false);
   };
 
   return (
@@ -106,10 +124,7 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
             </div>
             
             <button
-              onClick={() => {
-                handleLogout();
-                setIsMenuOpen(false);
-              }}
+              onClick={handleLogout}
               className="flex items-center gap-3 px-4 py-3 w-full text-left rounded-lg font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all duration-200"
             >
               <LogOut className="w-5 h-5" />
@@ -118,6 +133,13 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
           </div>
         )}
       </div>
+      
+      {/* Logout Modal */}
+      <LogoutModal
+        isOpen={showLogoutModal}
+        onClose={cancelLogout}
+        onConfirm={confirmLogout}
+      />
     </nav>
   );
 };
