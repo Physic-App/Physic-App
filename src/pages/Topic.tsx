@@ -75,7 +75,32 @@ const Topic: React.FC = () => {
 
       const ch = await fetchChapterById(id);
       setChapterData(ch);
-      setTopicData({ id, title: ch?.title || 'Topic', chapter: ch?.title || 'Chapter', description: ch?.description || '', progress: ch?.progress ?? 0, lessonContent: '', questions: [] });
+
+      // Load user progress first to get the real progress percentage
+      let realProgress = 0;
+      if (user) {
+        const completedSecs = await progressService.getCompletedSections(id);
+        const watchedVids = await progressService.getWatchedVideos(id);
+        setCompletedSections(completedSecs);
+        setWatchedVideos(watchedVids);
+        
+        // Calculate real progress: each chapter has 7 sections + 3 videos = 10 total
+        const totalItems = 10;
+        const completedItems = completedSecs.length + watchedVids.length;
+        realProgress = Math.round((completedItems / totalItems) * 100);
+        
+        console.log('📊 Topic page progress:', { chapterId: id, completedSecs: completedSecs.length, watchedVids: watchedVids.length, totalItems, realProgress });
+      }
+
+      setTopicData({ 
+        id, 
+        title: ch?.title || 'Topic', 
+        chapter: ch?.title || 'Chapter', 
+        description: ch?.description || '', 
+        progress: realProgress, // Use real progress instead of hardcoded 0
+        lessonContent: '', 
+        questions: [] 
+      });
 
       const secs = await fetchLessonSectionsByChapter(id);
       if (secs.length) {
@@ -98,14 +123,6 @@ const Topic: React.FC = () => {
 
       const videos = await getVideosForChapter(id);
       setAllVideos(videos);
-
-      // Load user progress
-      if (user) {
-        const completedSecs = await progressService.getCompletedSections(id);
-        const watchedVids = await progressService.getWatchedVideos(id);
-        setCompletedSections(completedSecs);
-        setWatchedVideos(watchedVids);
-      }
     };
     load();
   }, [chapterId, getVideosForChapter, user]);
@@ -194,6 +211,13 @@ const Topic: React.FC = () => {
                             const chId = parseInt(chapterId || '0');
                             await progressService.markSectionCompleted(chId, sectionId, 5); // 5 min default study time
                             setCompletedSections(prev => [...prev, sectionId]);
+                            
+                            // Update progress bar in real-time
+                            const totalItems = 10;
+                            const completedItems = completedSections.length + 1 + watchedVideos.length; // +1 for the newly completed section
+                            const newProgress = Math.round((completedItems / totalItems) * 100);
+                            setTopicData(prev => prev ? { ...prev, progress: newProgress } : null);
+                            
                             showToast('Section completed! 🎉', 'success');
                           } catch (error) {
                             console.error('Error marking section complete:', error);
@@ -305,6 +329,13 @@ const Topic: React.FC = () => {
                                       const chId = parseInt(chapterId || '0');
                                       await progressService.markVideoWatched(chId, currentVideo.id, Math.ceil(currentVideo.duration / 60));
                                       setWatchedVideos(prev => [...prev, currentVideo.id]);
+                                      
+                                      // Update progress bar in real-time
+                                      const totalItems = 10;
+                                      const completedItems = completedSections.length + watchedVideos.length + 1; // +1 for the newly watched video
+                                      const newProgress = Math.round((completedItems / totalItems) * 100);
+                                      setTopicData(prev => prev ? { ...prev, progress: newProgress } : null);
+                                      
                                       showToast('Video marked as watched! 🎬', 'success');
                                     } catch (error) {
                                       console.error('Error marking video watched:', error);

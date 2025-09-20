@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { supabase } from '../services/supabase';
+import { progressService } from '../services/progress';
+import { activityService } from '../services/activity';
 import { Link } from 'react-router-dom';
 import { User } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -8,18 +10,20 @@ import {
   Award, 
   BookOpen, 
   Play,
+  Clock,
 } from 'lucide-react';
 
 interface DashboardProps {
   userData: User | null;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
+const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
   const { user } = useAuth();
   const [currentQuote, setCurrentQuote] = useState<{text: string; author: string} | null>(null);
   const [lastChapterId, setLastChapterId] = useState<number | null>(null);
   const [lastTopicId, setLastTopicId] = useState<number | null>(null);
   const [userProfile, setUserProfile] = useState<{name: string; isNewUser: boolean} | null>(null);
+  const [realUserData, setRealUserData] = useState<User | null>(null);
 
   const motivationalQuotes = useMemo(() => ([
     {
@@ -44,6 +48,81 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
     const randomQuote = motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)];
     setCurrentQuote(randomQuote);
   }, [motivationalQuotes]);
+
+  // Load real user data based on authentication and progress
+  useEffect(() => {
+    const loadRealUserData = async () => {
+      if (!user) {
+        setRealUserData(propUserData); // Use fallback data if not authenticated
+        return;
+      }
+
+      try {
+        // Get user stats from progress service
+        const userStats = await progressService.getUserStats();
+        const allChaptersProgress = await progressService.getAllChaptersProgress();
+        
+        // Calculate overall progress
+        const totalChapters = 10; // You have 10 physics chapters
+        const completedChapters = Object.values(allChaptersProgress).filter(progress => progress === 100).length;
+        
+        // Find last studied topic (chapter with highest progress that's not 100%)
+        let lastChapter = 'Force and Pressure';
+        const lastTopic = 'Conceptual Introduction';
+        let lastProgress = 0;
+        
+        const chapterNames = [
+          'Force and Pressure', 'Friction', 'Electric Current and Its Effects', 'Motion',
+          'Force and Laws of Motion', 'Gravitation', 'Light: Reflection and Refraction', 
+          'Electricity', 'Magnetic Effects of Electric Current', 'Work and Energy'
+        ];
+        
+        // Find the most recently progressed chapter
+        Object.entries(allChaptersProgress).forEach(([chapterId, progress]) => {
+          if (progress > 0 && progress < 100) {
+            const chapterIndex = parseInt(chapterId) - 1;
+            if (chapterIndex >= 0 && chapterIndex < chapterNames.length) {
+              lastChapter = chapterNames[chapterIndex];
+              lastProgress = progress;
+            }
+          }
+        });
+
+        // Get real streak and total study time from activity service
+        const streakStats = await activityService.getStreakStats();
+        const totalStudyTimeMinutes = await activityService.getTotalStudyTime();
+        console.log('🔥 Real streak loaded:', streakStats);
+        console.log('⏱️ Real total study time loaded:', activityService.formatStudyTime(totalStudyTimeMinutes));
+
+        // Build real user data
+        const userData: User = {
+          id: user.id,
+          name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Physics Student',
+          email: user.email || 'student@example.com',
+          streak: streakStats.currentStreak, // Real streak from activity data
+          completedChapters,
+          totalChapters,
+          studyTime: totalStudyTimeMinutes,
+          averageScore: 85, // TODO: Implement quiz scoring
+          achievements: Math.floor((completedChapters / totalChapters) * 15), // Rough calculation
+          lastTopic: {
+            chapter: lastChapter,
+            topic: lastTopic,
+            progress: lastProgress,
+          },
+        };
+
+        console.log('📊 Dashboard real user data loaded:', { userData, userStats, allChaptersProgress });
+        setRealUserData(userData);
+        
+      } catch (error) {
+        console.error('Failed to load real user data:', error);
+        setRealUserData(propUserData); // Fallback to prop data
+      }
+    };
+
+    loadRealUserData();
+  }, [user, propUserData]);
 
   // Load user profile for personalized greeting
   useEffect(() => {
@@ -81,23 +160,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
   // Resolve real chapter/topic IDs for the Continue link
   useEffect(() => {
     const resolveIds = async () => {
-      if (!userData?.lastTopic?.chapter) return;
+      if (!realUserData?.lastTopic?.chapter) return;
       // Find chapter id by title
       const { data: chapter, error: chErr } = await supabase
         .from('chapters')
         .select('id')
-        .eq('title', userData.lastTopic.chapter)
+        .eq('title', realUserData.lastTopic.chapter)
         .maybeSingle();
       if (chErr || !chapter) return;
       setLastChapterId(chapter.id as number);
 
       // Find topic id by title within chapter
-      if (userData.lastTopic.topic) {
+      if (realUserData.lastTopic.topic) {
         const { data: topic, error: tpErr } = await supabase
           .from('topics')
           .select('id')
           .eq('chapter_id', chapter.id)
-          .eq('title', userData.lastTopic.topic)
+          .eq('title', realUserData.lastTopic.topic)
           .maybeSingle();
         if (!tpErr && topic) {
           setLastTopicId(topic.id as number);
@@ -105,7 +184,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
       }
     };
     resolveIds();
-  }, [userData?.lastTopic?.chapter, userData?.lastTopic?.topic]);
+  }, [realUserData?.lastTopic?.chapter, realUserData?.lastTopic?.topic]);
+
+  // Use realUserData if available, otherwise fallback to propUserData
+  const userData = realUserData || propUserData;
 
   if (!userData) {
     return (
@@ -176,7 +258,15 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
                   </div>
                 </div>
 
-                {/* Study time and quiz score cards removed as per requirements */}
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center gap-4 hover:shadow-lg transition-all duration-200">
+                  <div className="w-12 h-12 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                    <Clock className="w-6 h-6 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">{activityService.formatStudyTime(userData.studyTime)}</div>
+                    <div className="text-sm text-gray-600 dark:text-gray-400">Total Study Time</div>
+                  </div>
+                </div>
 
                 <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 flex items-center gap-4 hover:shadow-lg transition-all duration-200">
                   <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
@@ -268,11 +358,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData }) => {
             </Link>
 
             <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-green-200 dark:hover:border-green-600 cursor-pointer">
-              <div className="text-4xl mb-4">🎥</div>
+              <div className="text-4xl mb-4">🧮</div>
               <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 group-hover:text-green-600 dark:group-hover:text-green-400">
-                Browse Video
+                Practice Quiz
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Watch learning videos</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Test your knowledge</p>
             </div>
 
             <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-600 cursor-pointer">

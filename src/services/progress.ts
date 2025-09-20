@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { activityService } from './activity';
 
 export type ProgressType = 'section_completed' | 'video_watched' | 'chapter_completed';
 
@@ -19,6 +20,8 @@ export const progressService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
+    console.log('🔄 Marking section completed:', { chapterId, sectionId, userId: user.id });
+
     const { data, error } = await supabase
       .from('user_progress')
       .upsert({
@@ -31,7 +34,21 @@ export const progressService = {
         onConflict: 'user_id,chapter_id,section_id,progress_type'
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error marking section completed:', error);
+      throw error;
+    }
+    
+    console.log('✅ Section marked completed successfully:', data);
+    
+    // Also log this activity for streak tracking
+    try {
+      await activityService.logSectionCompleted(studyTimeMinutes);
+    } catch (activityError) {
+      console.warn('⚠️ Failed to log section activity:', activityError);
+      // Don't throw - progress tracking should still work even if activity logging fails
+    }
+    
     return data;
   },
 
@@ -39,6 +56,8 @@ export const progressService = {
   async markVideoWatched(chapterId: number, videoId: number, studyTimeMinutes = 0) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
+
+    console.log('🎬 Marking video watched:', { chapterId, videoId, userId: user.id });
 
     const { data, error } = await supabase
       .from('user_progress')
@@ -52,7 +71,21 @@ export const progressService = {
         onConflict: 'user_id,video_id,progress_type'
       });
 
-    if (error) throw error;
+    if (error) {
+      console.error('❌ Error marking video watched:', error);
+      throw error;
+    }
+    
+    console.log('✅ Video marked watched successfully:', data);
+    
+    // Also log this activity for streak tracking
+    try {
+      await activityService.logVideoWatched(studyTimeMinutes);
+    } catch (activityError) {
+      console.warn('⚠️ Failed to log video activity:', activityError);
+      // Don't throw - progress tracking should still work even if activity logging fails
+    }
+    
     return data;
   },
 
@@ -170,6 +203,19 @@ export const progressService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return {};
 
+    // Get all chapters to know which ones exist
+    const { data: chapters, error: chaptersError } = await supabase
+      .from('chapters')
+      .select('id')
+      .gte('id', 1)
+      .lte('id', 10)
+      .order('id');
+
+    if (chaptersError) {
+      console.error('Error fetching chapters:', chaptersError);
+      return {};
+    }
+
     const { data, error } = await supabase
       .from('user_progress')
       .select('chapter_id, progress_type')
@@ -196,14 +242,23 @@ export const progressService = {
       }
     });
 
-    // Convert to percentages
+    // Convert to percentages - each chapter has exactly 7 topics + 3 videos = 10 total items
     const progressPercentages: Record<number, number> = {};
+    
+    // Initialize all chapters with 0% progress
+    chapters?.forEach(chapter => {
+      progressPercentages[chapter.id] = 0;
+    });
+    
+    // Calculate actual progress for chapters with data
     Object.entries(chapterProgress).forEach(([chapterId, progress]) => {
-      const totalItems = 10; // 7 sections + 3 videos
+      const totalItems = 10; // 7 sections + 3 videos (confirmed from your database)
       const completedItems = progress.sections + progress.videos;
-      progressPercentages[parseInt(chapterId)] = Math.round((completedItems / totalItems) * 100);
+      const percentage = Math.round((completedItems / totalItems) * 100);
+      progressPercentages[parseInt(chapterId)] = Math.min(percentage, 100); // Cap at 100%
     });
 
+    console.log('📊 Progress calculation:', { chapterProgress, progressPercentages });
     return progressPercentages;
   }
 };

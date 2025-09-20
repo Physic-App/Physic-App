@@ -5,12 +5,14 @@ import Breadcrumb from '../components/Common/Breadcrumb';
 import { Clock, Award, Play, Lock } from 'lucide-react';
 import { fetchChaptersWithTopics } from '../services/data';
 import { progressService } from '../services/progress';
+import { activityService } from '../services/activity';
 import { useAuth } from '../hooks/useAuth';
 
 const Chapters: React.FC = () => {
   const { user } = useAuth();
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [chaptersProgress, setChaptersProgress] = useState<Record<number, number>>({});
+  const [chaptersStudyTime, setChaptersStudyTime] = useState<Record<number, number>>({});
 
   // Removed fallback sample data - using database only
 
@@ -23,12 +25,15 @@ const Chapters: React.FC = () => {
         if (!isMounted) return;
         setChapters(data);
 
-        // Load progress for all chapters if user is logged in
+        // Load progress and study time for all chapters if user is logged in
         if (user) {
           const progress = await progressService.getAllChaptersProgress();
+          const studyTime = await activityService.getStudyTimePerChapter();
           console.log('Chapters progress loaded:', progress);
+          console.log('Chapters study time loaded:', studyTime);
           if (isMounted) {
             setChaptersProgress(progress);
+            setChaptersStudyTime(studyTime);
           }
         }
       } catch (error) {
@@ -106,11 +111,7 @@ const Chapters: React.FC = () => {
                   <div className="flex gap-6 mb-6 text-sm text-gray-600 dark:text-gray-400">
                     <div className="flex items-center gap-2">
                       <Clock className="w-4 h-4" />
-                      {chapter.studyTime}h
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Award className="w-4 h-4" />
-                      {chapter.quizzes} quizzes
+                      {activityService.formatStudyTime(chaptersStudyTime[chapter.id] || 0)}
                     </div>
                   </div>
                   <div className="mb-6">
