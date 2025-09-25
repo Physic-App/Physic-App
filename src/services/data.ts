@@ -34,9 +34,9 @@ function convertTextToHtml(text: string): string {
     .join('');
 }
 
-const USER_TABLE = (
-  import.meta.env.VITE_USER_TABLE as string
-) || '';
+// const USER_TABLE = (
+//   import.meta.env.VITE_USER_TABLE as string
+// ) || '';
 const CHAPTERS_TABLE = (
   import.meta.env.VITE_CHAPTERS_TABLE as string
 ) || 'chapters';
@@ -52,38 +52,35 @@ export async function fetchUserData(): Promise<User | null> {
   }
 
   try {
-    // Try configured table first, then common fallbacks
-    const candidateTables = [USER_TABLE, 'user_profiles', 'profiles', 'users'].filter(Boolean);
-    for (const table of candidateTables) {
-      const { data, error } = await supabase
-        .from(table)
-        .select('*')
-        .limit(1)
-        .maybeSingle();
+    // Only try the user_profiles table which we know exists
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select('*')
+      .limit(1)
+      .maybeSingle();
 
-      if (!error && data) {
-        // Map flexible shapes into the app's User type with safe fallbacks
-        const user: User = {
-          id: String(data.id ?? data.user_id ?? '1'),
-          name: String(data.name ?? data.full_name ?? data.username ?? 'Learner'),
-          email: String(data.email ?? 'student@example.com'),
-          streak: Number(data.streak ?? 0),
-          completedChapters: Number(data.completed_chapters ?? data.completedChapters ?? 0),
-          totalChapters: Number(data.total_chapters ?? data.totalChapters ?? 0),
-          studyTime: Number(data.study_time ?? data.studyTime ?? 0),
-          averageScore: Number(data.average_score ?? data.averageScore ?? 0),
-          achievements: Number(data.achievements ?? 0),
-          lastTopic: {
-            chapter: String(data.last_chapter_title ?? data.lastChapterTitle ?? ''),
-            topic: String(data.last_topic_title ?? data.lastTopicTitle ?? ''),
-            progress: Number(data.last_topic_progress ?? data.lastTopicProgress ?? 0),
-          },
-        };
-        return user;
-      }
+    if (!error && data) {
+      // Map flexible shapes into the app's User type with safe fallbacks
+      const user: User = {
+        id: String(data.id ?? data.user_id ?? '1'),
+        name: String(data.name ?? data.full_name ?? data.username ?? 'Learner'),
+        email: String(data.email ?? 'student@example.com'),
+        streak: Number(data.streak ?? 0),
+        completedChapters: Number(data.completed_chapters ?? data.completedChapters ?? 0),
+        totalChapters: Number(data.total_chapters ?? data.totalChapters ?? 0),
+        studyTime: Number(data.study_time ?? data.studyTime ?? 0),
+        averageScore: Number(data.average_score ?? data.averageScore ?? 0),
+        achievements: Number(data.achievements ?? 0),
+        lastTopic: {
+          chapter: String(data.last_chapter_title ?? data.lastChapterTitle ?? ''),
+          topic: String(data.last_topic_title ?? data.lastTopicTitle ?? ''),
+          progress: Number(data.last_topic_progress ?? data.lastTopicProgress ?? 0),
+        },
+      };
+      return user;
     }
-  } catch (error) {
-    console.error('fetchUserData error:', error);
+  } catch {
+    // Database error - app will use fallback data
   }
   return null;
 }
@@ -138,8 +135,7 @@ export async function fetchChaptersWithTopics(): Promise<Chapter[]> {
       studyTime: 0, // Default since your table doesn't have study time
       quizzes: 0, // Default since your table doesn't have quiz count
     }));
-  } catch (error) {
-    console.error('fetchChaptersWithTopics error:', error);
+  } catch {
     return [];
   }
 }
@@ -178,8 +174,7 @@ export async function fetchChapterById(id: number): Promise<Chapter | null> {
       studyTime: 0, // Default since your table doesn't have study time
       quizzes: 0, // Default since your table doesn't have quiz count
     };
-  } catch (error) {
-    console.error('fetchChapterById error:', error);
+  } catch {
     return null;
   }
 }
@@ -214,8 +209,7 @@ export async function fetchLessonSectionsByChapter(chapterId: number): Promise<L
       title: String(row.title),
       contentHtml: convertTextToHtml(row.lesson_content || ''),
     }));
-  } catch (error) {
-    console.error('fetchLessonSectionsByChapter error:', error);
+  } catch {
     return [];
   }
 }

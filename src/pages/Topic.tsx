@@ -8,12 +8,18 @@ import { supabase } from '../services/supabase';
 import { progressService } from '../services/progress';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../hooks/useToast';
+import { HTMLRenderer } from '../components/Lesson';
+import TestConfiguration from '../components/Test/TestConfiguration';
+import TestInterface from '../components/Test/TestInterface';
+import TestResults from '../components/Test/TestResults';
+import { TestConfiguration as TestConfigType, TestSession } from '../types/test';
+import { TestService } from '../services/testService';
 
 const Topic: React.FC = () => {
   const { chapterId } = useParams();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<'lesson' | 'video'>('lesson');
+  const [activeTab, setActiveTab] = useState<'lesson' | 'video' | 'test'>('lesson');
   const [activeVideoTab, setActiveVideoTab] = useState<1 | 2 | 3>(1);
   const [chapterData, setChapterData] = useState<Chapter | null>(null);
   const [topicData, setTopicData] = useState<TopicData | null>(null);
@@ -31,6 +37,12 @@ const Topic: React.FC = () => {
     thumbnail_url?: string;
     order_index: number;
   }>>([]);
+
+  // Test state management
+  const [testState, setTestState] = useState<'config' | 'test' | 'results'>('config');
+  const [isTestLoading, setIsTestLoading] = useState(false);
+  const [currentTestSession, setCurrentTestSession] = useState<TestSession | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const formatDuration = (seconds: number): string => {
     const minutes = Math.floor(seconds / 60);
@@ -89,7 +101,6 @@ const Topic: React.FC = () => {
         const completedItems = completedSecs.length + watchedVids.length;
         realProgress = Math.round((completedItems / totalItems) * 100);
         
-        console.log('📊 Topic page progress:', { chapterId: id, completedSecs: completedSecs.length, watchedVids: watchedVids.length, totalItems, realProgress });
       }
 
       setTopicData({ 
@@ -123,9 +134,89 @@ const Topic: React.FC = () => {
 
       const videos = await getVideosForChapter(id);
       setAllVideos(videos);
+
+      // Note: Auto-start session logic moved to separate useEffect to avoid dependency issues
     };
     load();
   }, [chapterId, getVideosForChapter, user]);
+
+  // Test handler functions
+  const handleStartTest = async (config: TestConfigType) => {
+    setIsTestLoading(true);
+    setTestError(null);
+
+    try {
+      // Generate questions using TestService
+      const questions = await TestService.generateQuestions({
+        topic: config.topic,
+        questionCount: config.questionCount,
+        difficulty: config.difficulty,
+        questionType: config.questionType
+      });
+
+      // Create new test session
+      const session: TestSession = {
+        id: `session-${Date.now()}`,
+        configuration: config,
+        questions,
+        answers: {},
+        startTime: new Date(),
+        totalQuestions: config.questionCount,
+        correctAnswers: 0,
+        wrongAnswers: 0
+      };
+
+      setCurrentTestSession(session);
+      setTestState('test');
+    } catch (err) {
+      console.error('Error generating questions:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to generate questions';
+      setTestError(errorMessage);
+      
+      // If it's a parsing error, provide more helpful message
+      if (errorMessage.includes('parse')) {
+        setTestError('Question generation completed with sample questions. The AI response format was unexpected, but you can still take the test.');
+      }
+    } finally {
+      setIsTestLoading(false);
+    }
+  };
+
+  const handleCompleteTest = (session: TestSession) => {
+    console.log('handleCompleteTest called with session:', session);
+    setCurrentTestSession(session);
+    setTestState('results');
+    console.log('Test state changed to results');
+  };
+
+  const handleRetakeTest = () => {
+    if (currentTestSession) {
+      // Reset answers and start time for retake
+      const retakeSession: TestSession = {
+        ...currentTestSession,
+        answers: {},
+        startTime: new Date(),
+        endTime: undefined,
+        score: undefined,
+        correctAnswers: 0,
+        wrongAnswers: 0
+      };
+      setCurrentTestSession(retakeSession);
+      setTestState('test');
+    }
+  };
+
+  const handleNewTest = () => {
+    setCurrentTestSession(null);
+    setTestState('config');
+  };
+
+  const handleExitTest = () => {
+    if (window.confirm('Are you sure you want to exit the test? Your progress will be lost.')) {
+      setCurrentTestSession(null);
+      setTestState('config');
+    }
+  };
 
   if (!topicData) {
     return (
@@ -162,6 +253,7 @@ const Topic: React.FC = () => {
                 <div className="h-full bg-gradient-to-r from-blue-600 to-teal-600 rounded-full transition-all duration-1000" style={{ width: `${topicData.progress}%` }} />
               </div>
               <p className="text-sm font-medium text-gray-600 dark:text-gray-400">{topicData.progress}% Complete</p>
+              
             </div>
           </div>
         </section>
@@ -169,47 +261,75 @@ const Topic: React.FC = () => {
         <section className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg overflow-hidden transition-colors duration-300">
           <div className="flex bg-gray-100 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
             {[
-              { id: 'lesson' as const, label: '📖 Lesson' },
-              { id: 'video' as const, label: '🎥 Video' },
+              { id: 'lesson' as const, label: '📖 Lesson', shortLabel: '📖 L' },
+              { id: 'video' as const, label: '🎥 Video', shortLabel: '🎥 V' },
+              { id: 'test' as const, label: '📝 Test', shortLabel: '📝 T' },
             ].map((t) => (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`flex-1 py-4 px-6 font-medium transition-all duration-200 ${
+                className={`flex-1 py-3 sm:py-4 px-3 sm:px-6 font-medium transition-all duration-200 ${
                   activeTab === t.id
                     ? 'bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
                     : 'text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-gray-600'
                 }`}
               >
-                {t.label}
+                <span className="hidden sm:inline">{t.label}</span>
+                <span className="sm:hidden">{t.shortLabel}</span>
               </button>
             ))}
           </div>
 
-          <div className="p-8 min-h-96">
+          <div className="p-4 sm:p-6 lg:p-8 min-h-96">
             {activeTab === 'lesson' && (
-              <div className="max-w-3xl mx-auto">
-                <div className="prose prose-lg max-w-none">
-                  <h3 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-6 pb-2 border-b border-gray-200 dark:border-gray-600">{lessonSections[currentSectionIndex]?.title || 'Lesson'}</h3>
-                  <div className="prose max-w-none text-gray-700 dark:text-gray-300" dangerouslySetInnerHTML={{ __html: lessonSections[currentSectionIndex]?.contentHtml || '' }} />
+              <div className="max-w-5xl mx-auto">
+                <div className="space-y-8">
+                  <div className="text-center sm:text-left">
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-6 shadow-sm border border-blue-200 dark:border-blue-700">
+                      <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+                        {lessonSections[currentSectionIndex]?.title || 'Lesson'}
+                      </h3>
+                      <div className="flex items-center justify-center sm:justify-start space-x-4 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="flex items-center">
+                          <span className="w-2 h-2 bg-blue-500 rounded-full mr-2"></span>
+                          Physics Lesson
+                        </span>
+                        <span className="flex items-center">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                          Interactive Content
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="lesson-content-wrapper bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 sm:p-8 border border-gray-200 dark:border-gray-700">
+                    <HTMLRenderer 
+                      content={lessonSections[currentSectionIndex]?.contentHtml || ''} 
+                      className="text-gray-700 dark:text-gray-300"
+                    />
+                  </div>
                 </div>
-                <div className="flex justify-between items-center pt-8 border-t border-gray-200 dark:border-gray-600">
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 sm:pt-8 border-t border-gray-200 dark:border-gray-600">
                   <button 
                     onClick={() => setCurrentSectionIndex((i) => Math.max(0, i - 1))} 
                     disabled={currentSectionIndex === 0} 
-                    className="flex items-center gap-2 px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-300 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                   >
-                    ← Previous Lesson
+                    <span className="hidden sm:inline">← Previous Lesson</span>
+                    <span className="sm:hidden">← Previous</span>
                   </button>
 
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                     {user && lessonSections[currentSectionIndex] && (
                       <button
                         onClick={async () => {
                           try {
                             const sectionId = lessonSections[currentSectionIndex].id;
                             const chId = parseInt(chapterId || '0');
-                            await progressService.markSectionCompleted(chId, sectionId, 5); // 5 min default study time
+                            
+                            // Use simple 5-minute study time
+                            const studyTimeMinutes = 5;
+                            
+                            await progressService.markSectionCompleted(chId, sectionId, studyTimeMinutes);
                             setCompletedSections(prev => [...prev, sectionId]);
                             
                             // Update progress bar in real-time
@@ -218,30 +338,36 @@ const Topic: React.FC = () => {
                             const newProgress = Math.round((completedItems / totalItems) * 100);
                             setTopicData(prev => prev ? { ...prev, progress: newProgress } : null);
                             
-                            showToast('Section completed! 🎉', 'success');
+                            showToast(`Section completed! 🎉 (${studyTimeMinutes}m study time)`, 'success');
                           } catch (error) {
                             console.error('Error marking section complete:', error);
                             showToast('Failed to save progress', 'error');
                           }
                         }}
                         disabled={completedSections.includes(lessonSections[currentSectionIndex]?.id)}
-                        className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                        className={`w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 rounded-lg font-medium transition-colors ${
                           completedSections.includes(lessonSections[currentSectionIndex]?.id)
                             ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 cursor-not-allowed'
                             : 'bg-green-600 text-white hover:bg-green-700'
                         }`}
                       >
                         <CheckCircle className="w-4 h-4" />
-                        {completedSections.includes(lessonSections[currentSectionIndex]?.id) ? 'Completed' : 'Mark Complete'}
+                        <span className="hidden sm:inline">
+                          {completedSections.includes(lessonSections[currentSectionIndex]?.id) ? 'Completed' : 'Mark Complete'}
+                        </span>
+                        <span className="sm:hidden">
+                          {completedSections.includes(lessonSections[currentSectionIndex]?.id) ? '✓ Done' : '✓ Complete'}
+                        </span>
                       </button>
                     )}
 
                     <button 
                       onClick={() => setCurrentSectionIndex((i) => Math.min(lessonSections.length - 1, i + 1))} 
                       disabled={currentSectionIndex === lessonSections.length - 1} 
-                      className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 sm:px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                     >
-                      Next Lesson →
+                      <span className="hidden sm:inline">Next Lesson →</span>
+                      <span className="sm:hidden">Next →</span>
                     </button>
                   </div>
                 </div>
@@ -327,7 +453,11 @@ const Topic: React.FC = () => {
                                   onClick={async () => {
                                     try {
                                       const chId = parseInt(chapterId || '0');
-                                      await progressService.markVideoWatched(chId, currentVideo.id, Math.ceil(currentVideo.duration / 60));
+                                      
+                                      // Use video duration as study time
+                                      const studyTimeMinutes = Math.max(1, Math.ceil(currentVideo.duration / 60));
+                                      
+                                      await progressService.markVideoWatched(chId, currentVideo.id, studyTimeMinutes);
                                       setWatchedVideos(prev => [...prev, currentVideo.id]);
                                       
                                       // Update progress bar in real-time
@@ -336,7 +466,7 @@ const Topic: React.FC = () => {
                                       const newProgress = Math.round((completedItems / totalItems) * 100);
                                       setTopicData(prev => prev ? { ...prev, progress: newProgress } : null);
                                       
-                                      showToast('Video marked as watched! 🎬', 'success');
+                                      showToast(`Video marked as watched! 🎬 (${studyTimeMinutes}m watch time)`, 'success');
                                     } catch (error) {
                                       console.error('Error marking video watched:', error);
                                       showToast('Failed to save progress', 'error');
@@ -360,6 +490,53 @@ const Topic: React.FC = () => {
                     </>
                   );
                 })()}
+              </div>
+            )}
+
+            {activeTab === 'test' && (
+              <div className="max-w-4xl mx-auto">
+                {/* Error Message */}
+                {testError && (
+                  <div className="fixed top-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50">
+                    <div className="flex items-center">
+                      <div className="flex-1">
+                        <p className="font-medium">Error</p>
+                        <p className="text-sm">{testError}</p>
+                      </div>
+                      <button
+                        onClick={() => setTestError(null)}
+                        className="ml-4 text-white hover:text-gray-200"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Test Content */}
+                {testState === 'config' && (
+                  <TestConfiguration
+                    onStartTest={handleStartTest}
+                    isLoading={isTestLoading}
+                    chapterTitle={chapterData?.title}
+                  />
+                )}
+
+                {testState === 'test' && currentTestSession && (
+                  <TestInterface
+                    session={currentTestSession}
+                    onCompleteTest={handleCompleteTest}
+                    onExitTest={handleExitTest}
+                  />
+                )}
+
+                {testState === 'results' && currentTestSession && (
+                  <TestResults
+                    session={currentTestSession}
+                    onRetakeTest={handleRetakeTest}
+                    onNewTest={handleNewTest}
+                  />
+                )}
               </div>
             )}
           </div>

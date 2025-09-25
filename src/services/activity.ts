@@ -29,7 +29,6 @@ export const activityService = {
     if (!user) throw new Error('User not authenticated');
 
     const today = this.getTodayDate();
-    console.log('📊 Logging section completed activity:', { userId: user.id, date: today, studyTime: studyTimeMinutes });
 
     try {
       const { data, error } = await supabase
@@ -53,7 +52,6 @@ export const activityService = {
       // because upsert doesn't auto-increment, it replaces
       await this.incrementActivityCounters(user.id, today, 'section', studyTimeMinutes);
       
-      console.log('✅ Section activity logged successfully');
       return data;
     } catch (error) {
       console.error('❌ Error logging section activity:', error);
@@ -67,13 +65,11 @@ export const activityService = {
     if (!user) throw new Error('User not authenticated');
 
     const today = this.getTodayDate();
-    console.log('🎬 Logging video watched activity:', { userId: user.id, date: today, studyTime: studyTimeMinutes });
 
     try {
       // Same approach as section - increment counters properly
       await this.incrementActivityCounters(user.id, today, 'video', studyTimeMinutes);
       
-      console.log('✅ Video activity logged successfully');
     } catch (error) {
       console.error('❌ Error logging video activity:', error);
       throw error;
@@ -97,7 +93,6 @@ export const activityService = {
 
       if (error) {
         // If RPC doesn't exist, fall back to manual upsert
-        console.log('RPC not found, using manual upsert...');
         await this.manualUpsertActivity(userId, date, 1, 0, studyMinutes, now);
       }
     } else if (type === 'video') {
@@ -113,7 +108,6 @@ export const activityService = {
 
       if (error) {
         // If RPC doesn't exist, fall back to manual upsert
-        console.log('RPC not found, using manual upsert...');
         await this.manualUpsertActivity(userId, date, 0, 1, studyMinutes, now);
       }
     }
@@ -185,8 +179,15 @@ export const activityService = {
 
   // Get user's recent activity (for streak calculation)
   async getRecentActivity(days = 30): Promise<DailyActivity[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+    let user;
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return [];
+      user = authUser;
+    } catch (error) {
+      // Supabase not available, return empty array
+      return [];
+    }
 
     const { data, error } = await supabase
       .from('daily_activity')
@@ -205,21 +206,25 @@ export const activityService = {
 
   // Calculate current streak based on daily activity
   async calculateCurrentStreak(): Promise<number> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return 0;
+    let user;
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return 0;
+      user = authUser;
+    } catch (error) {
+      // Supabase not available, return 0
+      return 0;
+    }
 
-    console.log('🔥 Calculating current streak...');
 
     try {
       // Get recent activity ordered by date (most recent first)
       const activities = await this.getRecentActivity(60); // Check last 60 days max
       
       if (activities.length === 0) {
-        console.log('📊 No activities found, streak = 0');
         return 0;
       }
 
-      console.log('📊 Recent activities:', activities.map(a => ({ date: a.activity_date, sections: a.sections_completed, videos: a.videos_watched })));
 
       const today = this.getTodayDate();
       const yesterday = this.getDateDaysAgo(1);
@@ -238,7 +243,6 @@ export const activityService = {
       const yesterdayActivity = activityMap.get(yesterday);
       
       if (!todayActivity && !yesterdayActivity) {
-        console.log('📊 No activity today or yesterday, streak = 0');
         return 0;
       }
 
@@ -255,23 +259,19 @@ export const activityService = {
         
         if (activity && this.hasValidActivity(activity)) {
           streak++;
-          console.log(`📊 Day ${currentCheckDate}: ✅ Active (sections: ${activity.sections_completed}, videos: ${activity.videos_watched}) - Streak: ${streak}`);
           
           // Move to previous day
           currentCheckDate = this.getDateDaysAgo(this.getDaysFromToday(currentCheckDate) + 1);
         } else {
-          console.log(`📊 Day ${currentCheckDate}: ❌ No activity - Streak ends at ${streak}`);
           break;
         }
 
         // Safety check to prevent infinite loops
         if (streak > 365) {
-          console.warn('⚠️ Streak calculation safety limit reached (365 days)');
           break;
         }
       }
 
-      console.log(`🔥 Final calculated streak: ${streak} days`);
       return streak;
 
     } catch (error) {
@@ -331,10 +331,16 @@ export const activityService = {
 
   // Calculate study time per chapter from user progress
   async getStudyTimePerChapter(): Promise<Record<number, number>> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return {};
+    let user;
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return {};
+      user = authUser;
+    } catch (error) {
+      // Supabase not available, return empty object
+      return {};
+    }
 
-    console.log('⏱️ Calculating study time per chapter...');
 
     try {
       // Get all user progress with study time
@@ -349,7 +355,6 @@ export const activityService = {
       }
 
       if (!progressData || progressData.length === 0) {
-        console.log('📊 No progress data found');
         return {};
       }
 
@@ -366,7 +371,6 @@ export const activityService = {
         chapterStudyTime[chapterId] += studyMinutes;
       });
 
-      console.log('📊 Study time per chapter (minutes):', chapterStudyTime);
       return chapterStudyTime;
 
     } catch (error) {
@@ -396,7 +400,6 @@ export const activityService = {
     const studyTimePerChapter = await this.getStudyTimePerChapter();
     const totalMinutes = Object.values(studyTimePerChapter).reduce((sum, minutes) => sum + minutes, 0);
     
-    console.log('📊 Total study time:', this.formatStudyTime(totalMinutes));
     return totalMinutes;
   }
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X, BookOpen, Home, LogOut, Users } from 'lucide-react';
+import { Menu, X, BookOpen, Home, LogOut, Users, Gamepad2 } from 'lucide-react';
 import ThemeToggle from './ThemeToggle';
 import LogoutModal from '../Common/LogoutModal';
 
@@ -15,9 +15,10 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
   const navigate = useNavigate();
 
   const navLinks = [
-    { to: '/', label: 'Dashboard', icon: Home },
-    { to: '/chatbot', label: 'Chatbot', icon: Users },
-    { to: '/chapters', label: 'Subjects', icon: BookOpen },
+    { to: '/app', label: 'Dashboard', icon: Home },
+    { to: '/app/simulator', label: 'Simulator', icon: Gamepad2 },
+    { to: '/app/chatbot', label: 'Chatbot', icon: Users },
+    { to: '/app/chapters', label: 'Subjects', icon: BookOpen },
   ];
 
   const isActive = (path: string) => location.pathname === path;
@@ -48,9 +49,9 @@ const Navbar: React.FC<NavbarProps> = ({ onLogout }) => {
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/app" className="flex items-center gap-2">
             <BookOpen className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">MathMentor</h1>
+            <h1 className="text-xl font-bold text-blue-600 dark:text-blue-400">PhysicsFlow</h1>
           </Link>
 
           {/* Desktop Navigation */}
