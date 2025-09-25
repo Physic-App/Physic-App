@@ -148,8 +148,8 @@ const Topic: React.FC = () => {
     try {
       // Generate questions using TestService
       const questions = await TestService.generateQuestions({
-        topic: config.topic,
-        questionCount: config.questionCount,
+        chapterTitle: config.topic,
+        count: config.questionCount,
         difficulty: config.difficulty,
         questionType: config.questionType
       });
