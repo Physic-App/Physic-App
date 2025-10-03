@@ -16,7 +16,12 @@ const Auth: React.FC = () => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Form submitted:', { email, password: '***', isSignUp });
+    
+    // Check if Supabase is configured first
+    if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
+      showToast('Authentication not configured. Please add Supabase credentials to your .env file.', 'error');
+      return;
+    }
     
     if (!email || !password || (isSignUp && !name)) {
       showToast('Please fill in all fields', 'error');
@@ -30,16 +35,15 @@ const Auth: React.FC = () => {
 
     setLoading(true);
     try {
-      console.log('Attempting auth...');
       const { user: authUser, error } = isSignUp 
         ? await signUp(email, password)
         : await signIn(email, password);
 
-      console.log('Auth result:', { user: authUser?.id, error: error?.message });
 
       if (error) {
-        console.log('Auth error details:', error);
-        if (error.message.includes('Invalid login credentials')) {
+        if (error.message.includes('Supabase not configured')) {
+          showToast('Supabase not configured. Please add your credentials to .env file.', 'error');
+        } else if (error.message.includes('Invalid login credentials')) {
           showToast('Email or password is incorrect. Try signing up if you\'re new!', 'error');
         } else if (error.message.includes('User already registered') || error.message.includes('already registered')) {
           showToast('Account already exists. Try signing in instead!', 'error');
@@ -51,28 +55,27 @@ const Auth: React.FC = () => {
           showToast(error.message, 'error');
         }
       } else if (authUser) {
-        if (isSignUp) {
-          console.log('Signup successful, showing toast and redirecting...');
+        // Check if this is a new user by looking at creation time
+        const isNewUser = authUser.created_at === authUser.updated_at;
+        
+        if (isSignUp || isNewUser) {
           // Save name to user metadata and redirect to onboarding
           await supabase.auth.updateUser({
             data: { full_name: name }
           });
-          showToast('Account created successfully!', 'success');
-          console.log('Toast shown, waiting 2 seconds before redirect...');
+          showToast(`Welcome to PhysicsFlow, ${name}! 🎉`, 'success');
           setTimeout(() => {
-            console.log('Redirecting to onboarding...');
             window.location.href = '/onboarding';
           }, 2000);
         } else {
-          console.log('Signin successful, showing toast and redirecting...');
           showToast('Welcome back!', 'success');
           setTimeout(() => {
-            window.location.href = '/';
+            window.location.href = '/app';
           }, 2000);
         }
       } else if (isSignUp) {
         // Handle case where signup succeeds but user is null (email confirmation, etc.)
-        showToast('Account created! Please check your email if confirmation is required.', 'success');
+        showToast('Welcome to PhysicsFlow! Please check your email if confirmation is required.', 'success');
       } else {
         showToast('Authentication failed - no user returned', 'error');
       }
@@ -85,7 +88,6 @@ const Auth: React.FC = () => {
   };
 
   const handleGoogleAuth = async () => {
-    console.log('Attempting Google login...');
     
     // Check if Supabase is configured
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
@@ -101,7 +103,6 @@ const Auth: React.FC = () => {
         console.error('Google auth error:', error);
         showToast(`Google login failed: ${error.message}`, 'error');
       } else {
-        console.log('Google auth initiated - redirecting...');
         // OAuth will redirect, so no success message needed here
       }
     } catch (err) {
@@ -232,6 +233,28 @@ const Auth: React.FC = () => {
         {/* Footer */}
         <div className="mt-8 text-center text-sm text-gray-500 dark:text-gray-400">
           By continuing, you agree to our Terms of Service and Privacy Policy
+          
+          {/* Configuration Status */}
+          <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
+            <div className="flex items-center justify-center gap-2 text-xs">
+              <div className={`w-2 h-2 rounded-full ${
+                import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY 
+                  ? 'bg-green-500' 
+                  : 'bg-red-500'
+              }`}></div>
+              <span>
+                {import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY 
+                  ? 'Supabase Connected' 
+                  : 'Supabase Not Configured'
+                }
+              </span>
+            </div>
+            {!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY) && (
+              <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+                Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env file
+              </p>
+            )}
+          </div>
         </div>
       </div>
     </div>

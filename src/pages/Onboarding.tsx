@@ -145,13 +145,12 @@ const Onboarding: React.FC = () => {
     setLoading(true);
     try {
       // Save onboarding data to user profile
-      console.log('Saving onboarding data:', answers);
       if (!user) {
         showToast('Please log in first', 'error');
         return;
       }
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('user_profiles')
         .insert({
           user_id: user.id,
@@ -167,14 +166,13 @@ const Onboarding: React.FC = () => {
           onboarding_completed: true,
         });
       
-      console.log('Save result:', { data, error });
 
       if (error) throw error;
       
       showToast('Welcome to Physics! 🎉', 'success');
       // Redirect to dashboard after successful onboarding
       setTimeout(() => {
-        window.location.href = '/';
+        window.location.href = '/app';
       }, 1000);
     } catch (error) {
       console.error('Onboarding save error:', error);

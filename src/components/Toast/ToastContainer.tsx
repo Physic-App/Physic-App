@@ -65,7 +65,7 @@ const ToastContainer: React.FC<ToastContainerProps> = ({ toasts, onRemove }) => 
         </div>
       ))}
       
-      <style jsx>{`
+      <style>{`
         .toast.show {
           opacity: 1 !important;
           transform: translateX(0) !important;

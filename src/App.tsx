@@ -1,49 +1,93 @@
-import { useState, useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// React imports
+import { useState, useEffect, Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Context providers
 import { ThemeProvider } from './contexts/ThemeContext';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
+
+// Components
 import Navbar from './components/Navigation/Navbar';
 import ToastContainer from './components/Toast/ToastContainer';
-import Dashboard from './pages/Dashboard';
-import Chapters from './pages/Chapters';
-import Topic from './pages/Topic';
-import Auth from './pages/Auth';
-import Onboarding from './pages/Onboarding';
+
+// Hooks and services
 import { useToast } from './hooks/useToast';
-import { User } from './types';
 import { apiService } from './services/api';
 import { fetchUserData } from './services/data';
 
-// Sample user data - replace with API call
-const sampleUserData: User = {
-  id: '1',
-  name: "Arjun Kumar",
-  email: "arjun.kumar@example.com",
+// Types
+import { User } from './types';
+
+// Lazy load page components for better performance
+const Landing = lazy(() => import('./pages/Landing'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Simulator = lazy(() => import('./pages/Simulator'));
+const LightSimulator = lazy(() => import('./pages/LightSimulator'));
+const ForceSimulator = lazy(() => import('./pages/ForceSimulator'));
+const ElectricitySimulator = lazy(() => import('./pages/ElectricitySimulator'));
+const Chapters = lazy(() => import('./pages/Chapters'));
+const Topic = lazy(() => import('./pages/Topic'));
+const Auth = lazy(() => import('./pages/Auth'));
+const Onboarding = lazy(() => import('./pages/Onboarding'));
+const Chatbot = lazy(() => import('./pages/Chatbot'));
+
+// Loading spinner component
+const LoadingSpinner = () => (
+  <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600 dark:text-gray-400">Loading PhysicsFlow...</p>
+    </div>
+  </div>
+);
+
+// Demo user data - fallback when database is unavailable
+const DEMO_USER_DATA: User = {
+  id: 'demo-user',
+  name: "Demo User",
+  email: "demo@physicsflow.com",
   streak: 7,
   completedChapters: 5,
   totalChapters: 8,
   studyTime: 24,
-  averageScore: 85,
+  averageScore: 0,
   achievements: 12,
   lastTopic: {
-    chapter: "Algebra",
-    topic: "Quadratic Equations",
+    chapter: "Physics",
+    topic: "Force and Pressure",
     progress: 60
   }
 };
 
-function App() {
+// Protected Route Component
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const { user, loading } = useAuth();
+  
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+  
+  if (!user) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Main App Content Component
+function AppContent() {
   const [userData, setUserData] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toasts, showToast, removeToast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Initialize MathJax if available
+    // Initialize MathJax for mathematical expressions
     if (window.MathJax) {
       window.MathJax.typesetPromise?.();
     }
 
-    // Load user data from database (fallback to sample)
+    // Load user data from database with fallback to demo data
     const loadUserData = async () => {
       try {
         setIsLoading(true);
@@ -51,15 +95,14 @@ function App() {
         if (dbUser) {
           setUserData(dbUser);
         } else {
-          // Fallback demo
+          // Use demo data as fallback
           await new Promise(resolve => setTimeout(resolve, 500));
-          setUserData(sampleUserData);
+          setUserData(DEMO_USER_DATA);
         }
-        
-      } catch (error) {
-        console.error('Failed to load user data:', error);
-        showToast('Failed to load user data. Please try again.', 'error');
-      } finally {
+    } catch {
+      showToast('Failed to load user data. Using demo mode.', 'warning');
+      setUserData(DEMO_USER_DATA);
+    } finally {
         setIsLoading(false);
       }
     };
@@ -72,9 +115,7 @@ function App() {
       await apiService.logout();
       setUserData(null);
       showToast('Logged out successfully!', 'success');
-      // In a real app, redirect to login page
-    } catch (error) {
-      console.error('Logout failed:', error);
+    } catch {
       showToast('Logout failed. Please try again.', 'error');
     }
   };
@@ -84,58 +125,126 @@ function App() {
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading MathMentor...</p>
+          <p className="text-gray-600">Loading PhysicsFlow...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <ThemeProvider>
-      <AuthProvider>
-        <Router>
-          <div className="App font-nunito bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
-            <ToastContainer toasts={toasts} onRemove={removeToast} />
+    <Router>
+      <div className="App font-nunito bg-gray-50 dark:bg-gray-900 min-h-screen transition-colors duration-300">
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
+        
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            {/* Landing Page - Show when not authenticated */}
+            <Route path="/" element={
+              user ? (
+                <Navigate to="/app" replace />
+              ) : (
+                <Landing />
+              )
+            } />
             
-            <Routes>
-              {/* Auth Routes */}
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              
-              {/* Main App Routes (for now, keeping them open for testing) */}
-              <Route path="/" element={
+            {/* Auth Routes */}
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/onboarding" element={<Onboarding />} />
+            
+            {/* Protected App Routes */}
+            <Route path="/app" element={
+              <ProtectedRoute>
                 <div>
                   <Navbar onLogout={handleLogout} />
                   <Dashboard userData={userData} />
                 </div>
-              } />
-              <Route path="/chapters" element={
+              </ProtectedRoute>
+            } />
+            <Route path="/app/simulator" element={
+              <ProtectedRoute>
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Simulator />
+                </div>
+              </ProtectedRoute>
+            } />
+            <Route path="/app/simulator/light" element={
+              <ProtectedRoute>
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <LightSimulator />
+                </div>
+              </ProtectedRoute>
+            } />
+            <Route path="/app/simulator/force" element={
+              <ProtectedRoute>
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <ForceSimulator />
+                </div>
+              </ProtectedRoute>
+            } />
+            <Route path="/app/simulator/electricity" element={
+              <ProtectedRoute>
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <ElectricitySimulator />
+                </div>
+              </ProtectedRoute>
+            } />
+            <Route path="/app/chapters" element={
+              <ProtectedRoute>
                 <div>
                   <Navbar onLogout={handleLogout} />
                   <Chapters />
                 </div>
-              } />
-              <Route path="/chapters/:chapterId" element={
+              </ProtectedRoute>
+            } />
+            <Route path="/app/chapters/:chapterId" element={
+              <ProtectedRoute>
                 <div>
                   <Navbar onLogout={handleLogout} />
                   <Topic />
                 </div>
-              } />
-              <Route path="/chapters/:chapterId/topics/:topicId" element={
+              </ProtectedRoute>
+            } />
+            <Route path="/app/chapters/:chapterId/topics/:topicId" element={
+              <ProtectedRoute>
                 <div>
                   <Navbar onLogout={handleLogout} />
                   <Topic />
                 </div>
-              } />
-              <Route path="/topics/:topicId" element={
+              </ProtectedRoute>
+            } />
+            <Route path="/app/topics/:topicId" element={
+              <ProtectedRoute>
                 <div>
                   <Navbar onLogout={handleLogout} />
                   <Topic />
                 </div>
-              } />
-            </Routes>
-          </div>
-        </Router>
+              </ProtectedRoute>
+            } />
+            <Route path="/app/chatbot" element={
+              <ProtectedRoute>
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <Chatbot />
+                </div>
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </Suspense>
+      </div>
+    </Router>
+  );
+}
+
+// Main App Component with Providers
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
       </AuthProvider>
     </ThemeProvider>
   );

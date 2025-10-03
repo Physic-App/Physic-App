@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Chapter } from '../types';
 import Breadcrumb from '../components/Common/Breadcrumb';
-import { Clock, Award, Play, Lock } from 'lucide-react';
+import { Clock, Play, Lock } from 'lucide-react';
 import { fetchChaptersWithTopics } from '../services/data';
 import { progressService } from '../services/progress';
 import { activityService } from '../services/activity';
@@ -21,7 +21,6 @@ const Chapters: React.FC = () => {
     const load = async () => {
       try {
         const data = await fetchChaptersWithTopics();
-        console.log('Chapters loaded:', data);
         if (!isMounted) return;
         setChapters(data);
 
@@ -29,8 +28,6 @@ const Chapters: React.FC = () => {
         if (user) {
           const progress = await progressService.getAllChaptersProgress();
           const studyTime = await activityService.getStudyTimePerChapter();
-          console.log('Chapters progress loaded:', progress);
-          console.log('Chapters study time loaded:', studyTime);
           if (isMounted) {
             setChaptersProgress(progress);
             setChaptersStudyTime(studyTime);
@@ -144,7 +141,7 @@ const Chapters: React.FC = () => {
                   <div className="flex gap-3">
                     {chapter.isUnlocked ? (
                       <Link
-                        to={`/chapters/${chapter.id}`}
+                        to={`/app/chapters/${chapter.id}`}
                         className="w-full bg-blue-600 text-white text-center py-3 px-4 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
                       >
                         <Play className="w-4 h-4" />

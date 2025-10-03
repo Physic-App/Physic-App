@@ -53,11 +53,13 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
   useEffect(() => {
     const loadRealUserData = async () => {
       if (!user) {
+        console.log('No authenticated user, using demo data');
         setRealUserData(propUserData); // Use fallback data if not authenticated
         return;
       }
 
       try {
+        console.log('Loading real user data for authenticated user');
         // Get user stats from progress service
         const userStats = await progressService.getUserStats();
         const allChaptersProgress = await progressService.getAllChaptersProgress();
@@ -91,8 +93,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
         // Get real streak and total study time from activity service
         const streakStats = await activityService.getStreakStats();
         const totalStudyTimeMinutes = await activityService.getTotalStudyTime();
-        console.log('🔥 Real streak loaded:', streakStats);
-        console.log('⏱️ Real total study time loaded:', activityService.formatStudyTime(totalStudyTimeMinutes));
 
         // Build real user data
         const userData: User = {
@@ -103,7 +103,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
           completedChapters,
           totalChapters,
           studyTime: totalStudyTimeMinutes,
-          averageScore: 85, // TODO: Implement quiz scoring
+          averageScore: 0, // Quiz scoring not yet implemented
           achievements: Math.floor((completedChapters / totalChapters) * 15), // Rough calculation
           lastTopic: {
             chapter: lastChapter,
@@ -112,7 +112,6 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
           },
         };
 
-        console.log('📊 Dashboard real user data loaded:', { userData, userStats, allChaptersProgress });
         setRealUserData(userData);
         
       } catch (error) {
@@ -130,26 +129,42 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
       if (!user) return;
       
       try {
-        const { data: profile, error } = await supabase
+        const { data: profile } = await supabase
           .from('user_profiles')
           .select('onboarding_completed')
           .eq('user_id', user.id)
           .maybeSingle();
         
-        console.log('Profile check:', { profile, error, userId: user.id });
+        // Check if user has any progress data
+        const { data: progressData } = await supabase
+          .from('user_progress')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
+        
+        // Check if user has any activity data
+        const { data: activityData } = await supabase
+          .from('daily_activity')
+          .select('id')
+          .eq('user_id', user.id)
+          .limit(1);
         
         const name = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Learner';
-        // User is new if: no profile exists OR profile exists but onboarding not completed
-        const isNewUser = !profile || !profile.onboarding_completed;
         
-        console.log('User status:', { name, isNewUser, profileExists: !!profile });
+        // User is new if: 
+        // 1. No profile exists OR profile exists but onboarding not completed
+        // 2. AND no progress data exists
+        // 3. AND no activity data exists
+        const isNewUser = (!profile || !profile.onboarding_completed) && 
+                         (!progressData || progressData.length === 0) && 
+                         (!activityData || activityData.length === 0);
         
         setUserProfile({ name, isNewUser });
       } catch (error) {
         console.error('Error loading user profile:', error);
         setUserProfile({ 
           name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Learner', 
-          isNewUser: false 
+          isNewUser: true // Default to new user if there's an error
         });
       }
     };
@@ -215,6 +230,11 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
                     ? `Welcome to Physics, ${userProfile.name}! 🎉`
                     : `Welcome back, ${userProfile?.name || userData?.name?.split(' ')[0] || 'Learner'}! 👋`
                   }
+                  {!user && (
+                    <span className="text-sm font-normal opacity-75 block mt-1">
+                      (Demo Mode - No authentication required)
+                    </span>
+                  )}
                 </h2>
                 <p className="text-xl opacity-90">
                   {userProfile?.isNewUser 
@@ -301,10 +321,10 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
               <Link 
                 to={
                   lastChapterId && lastTopicId
-                    ? `/chapters/${lastChapterId}/topics/${lastTopicId}`
+                    ? `/app/chapters/${lastChapterId}/topics/${lastTopicId}`
                     : lastChapterId
-                      ? `/chapters/${lastChapterId}`
-                      : '/chapters'
+                    ? `/app/chapters/${lastChapterId}`
+                    : '/app/chapters'
                 }
                 className="inline-flex items-center gap-2 bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
               >
@@ -347,7 +367,7 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <Link 
-              to="/chapters"
+              to="/app/chapters"
               className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-blue-200 dark:hover:border-blue-600"
             >
               <div className="text-4xl mb-4">📚</div>
@@ -358,20 +378,23 @@ const Dashboard: React.FC<DashboardProps> = ({ userData: propUserData }) => {
             </Link>
 
             <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-green-200 dark:hover:border-green-600 cursor-pointer">
-              <div className="text-4xl mb-4">🧮</div>
+              <div className="text-4xl mb-4">⚗️</div>
               <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 group-hover:text-green-600 dark:group-hover:text-green-400">
-                Practice Quiz
+                Simulators
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Test your knowledge</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Interactive physics experiments</p>
             </div>
 
-            <div className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-600 cursor-pointer">
-              <div className="text-4xl mb-4">🤖</div>
+            <Link 
+              to="/app/test-features"
+              className="group bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 text-center hover:shadow-xl hover:-translate-y-1 transition-all duration-200 border-2 border-transparent hover:border-purple-200 dark:hover:border-purple-600"
+            >
+              <div className="text-4xl mb-4">🧪</div>
               <h4 className="text-lg font-semibold mb-2 text-gray-900 dark:text-gray-100 group-hover:text-purple-600 dark:group-hover:text-purple-400">
-                Chatbot
+                Test Features
               </h4>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Need assistance?</p>
-            </div>
+              <p className="text-sm text-gray-600 dark:text-gray-400">Try new interactive features</p>
+            </Link>
           </div>
         </section>
       </div>

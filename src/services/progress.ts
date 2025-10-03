@@ -17,10 +17,14 @@ export interface UserProgress {
 export const progressService = {
   // Mark a lesson section as completed
   async markSectionCompleted(chapterId: number, sectionId: number, studyTimeMinutes = 0) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
+    } catch (error) {
+      // Supabase not available, return mock data
+      return [];
+    }
 
-    console.log('🔄 Marking section completed:', { chapterId, sectionId, userId: user.id });
 
     const { data, error } = await supabase
       .from('user_progress')
@@ -39,7 +43,6 @@ export const progressService = {
       throw error;
     }
     
-    console.log('✅ Section marked completed successfully:', data);
     
     // Also log this activity for streak tracking
     try {
@@ -57,7 +60,6 @@ export const progressService = {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    console.log('🎬 Marking video watched:', { chapterId, videoId, userId: user.id });
 
     const { data, error } = await supabase
       .from('user_progress')
@@ -76,7 +78,6 @@ export const progressService = {
       throw error;
     }
     
-    console.log('✅ Video marked watched successfully:', data);
     
     // Also log this activity for streak tracking
     try {
@@ -131,8 +132,20 @@ export const progressService = {
 
   // Get overall user progress stats
   async getUserStats() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
+    let user;
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return null;
+      user = authUser;
+    } catch (error) {
+      // Supabase not available, return mock data
+      return {
+        totalSectionsCompleted: 0,
+        totalVideosWatched: 0,
+        totalStudyTimeMinutes: 0,
+        chaptersCompleted: 0
+      };
+    }
 
     const { data, error } = await supabase
       .from('user_progress')
@@ -200,8 +213,15 @@ export const progressService = {
 
   // Get progress for all chapters at once
   async getAllChaptersProgress(): Promise<Record<number, number>> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return {};
+    let user;
+    try {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      if (!authUser) return {};
+      user = authUser;
+    } catch (error) {
+      // Supabase not available, return empty object
+      return {};
+    }
 
     // Get all chapters to know which ones exist
     const { data: chapters, error: chaptersError } = await supabase
@@ -258,7 +278,6 @@ export const progressService = {
       progressPercentages[parseInt(chapterId)] = Math.min(percentage, 100); // Cap at 100%
     });
 
-    console.log('📊 Progress calculation:', { chapterProgress, progressPercentages });
     return progressPercentages;
   }
 };
