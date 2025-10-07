@@ -143,11 +143,7 @@ function AppContent() {
               user ? (
                 <Navigate to="/app" replace />
               ) : (
-<<<<<<< HEAD
-                <Navigate to="/auth" replace />
-=======
                 <Landing />
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
               )
             } />
             
@@ -172,8 +168,6 @@ function AppContent() {
                 </div>
               </ProtectedRoute>
             } />
-<<<<<<< HEAD
-=======
             <Route path="/app/simulator/light" element={
               <ProtectedRoute>
                 <div>
@@ -182,7 +176,6 @@ function AppContent() {
                 </div>
               </ProtectedRoute>
             } />
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
             <Route path="/app/simulator/force" element={
               <ProtectedRoute>
                 <div>
@@ -199,17 +192,6 @@ function AppContent() {
                 </div>
               </ProtectedRoute>
             } />
-<<<<<<< HEAD
-            <Route path="/app/simulator/light" element={
-              <ProtectedRoute>
-                <div>
-                  <Navbar onLogout={handleLogout} />
-                  <LightSimulator />
-                </div>
-              </ProtectedRoute>
-            } />
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
             <Route path="/app/chapters" element={
               <ProtectedRoute>
                 <div>
