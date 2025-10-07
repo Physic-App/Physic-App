@@ -1,11 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
+<<<<<<< HEAD
 import { Slider } from '../../ui/Slider';
 import { FormulaPanel } from '../../ui/FormulaPanel';
+=======
+import { Slider } from './ui/Slider';
+import { FormulaPanel } from './ui/FormulaPanel';
+import { calculateSnellsLaw, validateAngle } from '../../../utils/physicsConstants';
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
 export const RefractionSimulator: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [incidentAngle, setIncidentAngle] = useState(30);
   const [refractiveIndex, setRefractiveIndex] = useState(1.5);
+<<<<<<< HEAD
   const [mediumType, setMediumType] = useState<'air-glass' | 'glass-air' | 'air-water'>('air-glass');
 
   const getRefractiveIndices = () => {
@@ -30,6 +37,45 @@ export const RefractionSimulator: React.FC = () => {
       drawRefraction();
     }, 100);
     return () => clearTimeout(timer);
+=======
+  const [mediumType, setMediumType] = useState<'air-glass' | 'glass-air' | 'air-water' | 'water-air' | 'air-diamond' | 'diamond-air' | 'glass-water' | 'water-glass'>('air-glass');
+
+  const getRefractiveIndices = () => {
+    switch (mediumType) {
+      case 'air-glass': return { n1: 1.0, n2: 1.5, name1: 'Air', name2: 'Glass' };
+      case 'glass-air': return { n1: 1.5, n2: 1.0, name1: 'Glass', name2: 'Air' };
+      case 'air-water': return { n1: 1.0, n2: 1.33, name1: 'Air', name2: 'Water' };
+      case 'water-air': return { n1: 1.33, n2: 1.0, name1: 'Water', name2: 'Air' };
+      case 'air-diamond': return { n1: 1.0, n2: 2.42, name1: 'Air', name2: 'Diamond' };
+      case 'diamond-air': return { n1: 2.42, n2: 1.0, name1: 'Diamond', name2: 'Air' };
+      case 'glass-water': return { n1: 1.5, n2: 1.33, name1: 'Glass', name2: 'Water' };
+      case 'water-glass': return { n1: 1.33, n2: 1.5, name1: 'Water', name2: 'Glass' };
+      default: return { n1: 1.0, n2: refractiveIndex, name1: 'Medium 1', name2: 'Medium 2' };
+    }
+  };
+
+  const { n1, n2, name1, name2 } = getRefractiveIndices();
+  
+  // Calculate refracted angle using Snell's law with error handling
+  const calculateRefraction = () => {
+    try {
+      // Use validated physics calculations
+      return calculateSnellsLaw(n1, n2, incidentAngle);
+    } catch (error) {
+      console.warn('Error calculating refraction:', error);
+      return {
+        refractedAngle: null,
+        isTIR: false,
+        error: 'Calculation error'
+      };
+    }
+  };
+  
+  const { refractedAngle, isTIR, error: refractionError } = calculateRefraction();
+
+  useEffect(() => {
+    drawRefraction();
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
   }, [incidentAngle, refractiveIndex, mediumType]);
 
   const drawRefraction = () => {
@@ -37,7 +83,14 @@ export const RefractionSimulator: React.FC = () => {
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
+<<<<<<< HEAD
     if (!ctx) return;
+=======
+    if (!ctx) {
+      console.warn('Canvas context not available');
+      return;
+    }
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     canvas.width = canvas.offsetWidth;
@@ -50,7 +103,11 @@ export const RefractionSimulator: React.FC = () => {
     drawInterface(ctx, canvas, centerX, centerY);
     
     // Draw media labels
+<<<<<<< HEAD
     drawMediaLabels(ctx, centerX, centerY, mediumType);
+=======
+    drawMediaLabels(ctx, centerX, centerY);
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     
     // Draw incident ray
     drawIncidentRay(ctx, centerX, centerY, incidentAngle);
@@ -58,8 +115,18 @@ export const RefractionSimulator: React.FC = () => {
     // Draw refracted ray or TIR
     if (refractedAngle !== null) {
       drawRefractedRay(ctx, centerX, centerY, refractedAngle);
+<<<<<<< HEAD
     } else {
       drawTotalInternalReflection(ctx, centerX, centerY, incidentAngle);
+=======
+    } else if (isTIR) {
+      drawTotalInternalReflection(ctx, centerX, centerY, incidentAngle);
+    } else {
+      // Show error state
+      ctx.fillStyle = '#EF4444';
+      ctx.font = 'bold 16px sans-serif';
+      ctx.fillText(refractionError || 'Error', centerX - 50, centerY - 100);
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     }
     
     // Draw normal
@@ -89,6 +156,7 @@ export const RefractionSimulator: React.FC = () => {
     ctx.stroke();
   };
 
+<<<<<<< HEAD
   const drawMediaLabels = (ctx: CanvasRenderingContext2D, x: number, y: number, type: string) => {
     ctx.fillStyle = '#374151';
     ctx.font = 'bold 16px sans-serif';
@@ -102,6 +170,14 @@ export const RefractionSimulator: React.FC = () => {
     const [medium1, medium2] = labels[type];
     ctx.fillText(medium1, 20, y - 20);
     ctx.fillText(medium2, 20, y + 40);
+=======
+  const drawMediaLabels = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    ctx.fillStyle = '#374151';
+    ctx.font = 'bold 16px sans-serif';
+    
+    ctx.fillText(`${name1} (n = ${n1})`, 20, y - 20);
+    ctx.fillText(`${name2} (n = ${n2})`, 20, y + 40);
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
   };
 
   const drawIncidentRay = (ctx: CanvasRenderingContext2D, x: number, y: number, angle: number) => {
@@ -231,6 +307,11 @@ export const RefractionSimulator: React.FC = () => {
               max={89}
               value={incidentAngle}
               onChange={setIncidentAngle}
+<<<<<<< HEAD
+=======
+              unit="°"
+              precision={0}
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
             />
           </div>
 
@@ -244,6 +325,14 @@ export const RefractionSimulator: React.FC = () => {
               <option value="air-glass">Air → Glass</option>
               <option value="glass-air">Glass → Air</option>
               <option value="air-water">Air → Water</option>
+<<<<<<< HEAD
+=======
+              <option value="water-air">Water → Air</option>
+              <option value="air-diamond">Air → Diamond</option>
+              <option value="diamond-air">Diamond → Air</option>
+              <option value="glass-water">Glass → Water</option>
+              <option value="water-glass">Water → Glass</option>
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
             </select>
           </div>
 
@@ -254,8 +343,14 @@ export const RefractionSimulator: React.FC = () => {
               `n₁ = ${n1.toFixed(2)}`,
               `n₂ = ${n2.toFixed(2)}`,
               `θ₁ = ${incidentAngle}°`,
+<<<<<<< HEAD
               refractedAngle ? `θ₂ = ${refractedAngle.toFixed(1)}°` : 'Total Internal Reflection!'
             ]}
+=======
+              refractedAngle ? `θ₂ = ${refractedAngle.toFixed(1)}°` : 'Total Internal Reflection!',
+              refractionError ? `⚠️ ${refractionError}` : ''
+            ].filter(Boolean)}
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
           />
         </div>
       </div>
@@ -269,4 +364,8 @@ export const RefractionSimulator: React.FC = () => {
       )}
     </div>
   );
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f

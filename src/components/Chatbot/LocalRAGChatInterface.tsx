@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+<<<<<<< HEAD
 import { Send, Bookmark, Plus, Database, Upload } from 'lucide-react';
+=======
+import { Send, Bookmark, Plus, Database } from 'lucide-react';
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 import { Message, Chapter, ChatSession } from '../../types/chatbot';
 import { mockChatSessions } from '../../data/mockData';
 import { ChapterSelector } from './ChapterSelector';
@@ -9,8 +13,12 @@ import { TypingIndicator } from './TypingIndicator';
 import { BookmarkSidebar } from './BookmarkSidebar';
 import ThemeToggle from '../Navigation/ThemeToggle';
 import { useLocalRAGChat } from '../../hooks/useLocalRAGChat';
+<<<<<<< HEAD
 import { localStorageRAG } from '../../services/localStorageRAG';
 import { runAllChapterIsolationTests } from '../../utils/chatbotTests';
+=======
+import { autoPDFLoader } from '../../services/autoPDFLoader';
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
 export const LocalRAGChatInterface: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
@@ -20,6 +28,7 @@ export const LocalRAGChatInterface: React.FC = () => {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>(mockChatSessions);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+<<<<<<< HEAD
   const [showDataManager, setShowDataManager] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -27,6 +36,17 @@ export const LocalRAGChatInterface: React.FC = () => {
 
   // Use real Local RAG Chat functionality
   const { isLoading, error, hasChapterData, sendMessage, loadSampleData, uploadPDFs, getStorageInfo } = useLocalRAGChat();
+=======
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Local RAG Chat Hook
+  const { sendMessage, isLoading, error } = useLocalRAGChat({
+    chapterId: selectedChapter?.id || '',
+    chapterTitle: selectedChapter?.title || '',
+    useLocalStorage: true,
+  });
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -37,6 +57,14 @@ export const LocalRAGChatInterface: React.FC = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
+<<<<<<< HEAD
+=======
+  // Auto-load PDFs on component mount
+  useEffect(() => {
+    autoPDFLoader.loadAllPDFs().catch(console.error);
+  }, []);
+
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
   // Focus input when chapter changes
   useEffect(() => {
     if (selectedChapter) {
@@ -49,11 +77,16 @@ export const LocalRAGChatInterface: React.FC = () => {
     return words.join(' ') + (firstMessage.split(' ').length > 4 ? '...' : '');
   };
 
+<<<<<<< HEAD
   const handleChapterSelect = async (chapter: Chapter) => {
+=======
+  const handleChapterSelect = (chapter: Chapter) => {
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     setSelectedChapter(chapter);
     setMessages([]);
     setSelectedSessionId(null);
     
+<<<<<<< HEAD
     // Check if chapter data exists
     const chapterData = await localStorageRAG.getChapterData(chapter.id);
     let chapterHasData = !!chapterData;
@@ -74,6 +107,16 @@ export const LocalRAGChatInterface: React.FC = () => {
     const welcomeMessage: Message = {
       id: Date.now().toString(),
       content: `Hello! 👋 I'm your physics assistant for **${chapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
+=======
+    // Welcome message for new chapter
+    const welcomeMessage: Message = {
+      id: Date.now().toString(),
+      content: `Hello! I'm here to help you with **${chapter.title}**. 
+
+✅ *I have your textbook content loaded and ready to answer questions!*
+
+Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       isBot: true,
       timestamp: new Date(),
     };
@@ -97,12 +140,17 @@ export const LocalRAGChatInterface: React.FC = () => {
     }
   };
 
+<<<<<<< HEAD
   const handleNewChat = async () => {
+=======
+  const handleNewChat = () => {
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     if (!selectedChapter) return;
     
     setSelectedSessionId(null);
     setMessages([]);
     
+<<<<<<< HEAD
     // Check if chapter data exists
     const chapterData = await localStorageRAG.getChapterData(selectedChapter.id);
     const chapterHasData = !!chapterData;
@@ -116,6 +164,16 @@ ${chapterHasData
   ? '✅ *I have your textbook content loaded and ready to answer questions!*' 
   : '⚠️ *No content loaded for this chapter yet. Upload PDFs or load sample data to get started.*'
 }`,
+=======
+    // Welcome message for new chat
+    const welcomeMessage: Message = {
+      id: Date.now().toString(),
+      content: `Hello! I'm here to help you with **${selectedChapter.title}**.
+
+✅ *I have your textbook content loaded and ready to answer questions!*
+
+Ask me anything about this chapter - from basic concepts to complex numerical problems.`,
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       isBot: true,
       timestamp: new Date(),
     };
@@ -167,16 +225,27 @@ ${chapterHasData
       // Send message to local RAG system
       const result = await sendMessage(
         currentInput,
+<<<<<<< HEAD
         selectedChapter.id,
         selectedChapter.title
+=======
+        newMessages,
+        selectedSessionId || undefined
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       );
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
+<<<<<<< HEAD
         content: result.content,
         isBot: true,
         timestamp: new Date(),
         isBookmarked: false,
+=======
+        content: result.response,
+        isBot: true,
+        timestamp: new Date(),
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       };
 
       const updatedMessages = [...newMessages, botResponse];
@@ -202,7 +271,10 @@ ${chapterHasData
         content: "I'm sorry, I encountered an error processing your question. Please try again or rephrase your question.",
         isBot: true,
         timestamp: new Date(),
+<<<<<<< HEAD
         isBookmarked: false,
+=======
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       };
 
       const updatedMessages = [...newMessages, errorResponse];
@@ -229,6 +301,7 @@ ${chapterHasData
     );
   };
 
+<<<<<<< HEAD
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files || files.length === 0) return;
@@ -270,6 +343,8 @@ ${chapterHasData
       alert('Error loading sample data. Please try again.');
     }
   };
+=======
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
   const bookmarkedMessages = messages.filter(msg => msg.isBookmarked);
 
@@ -277,6 +352,7 @@ ${chapterHasData
     handleBookmark(messageId);
   };
 
+<<<<<<< HEAD
   const [storageInfo, setStorageInfo] = useState({ totalChapters: 0, totalSize: 0, chapters: [] });
 
   // Load storage info on component mount
@@ -290,6 +366,11 @@ ${chapterHasData
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
+=======
+
+  return (
+    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       
       {/* Left Sidebar */}
       <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
@@ -304,6 +385,7 @@ ${chapterHasData
             <ThemeToggle />
           </div>
           
+<<<<<<< HEAD
           {/* Data Management */}
           <div className="mb-3 space-y-2">
             <button
@@ -372,6 +454,17 @@ Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
                 </div>
               </div>
             )}
+=======
+          {/* Content Status */}
+          <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+            <div className="flex items-center space-x-2 text-sm text-green-700 dark:text-green-300">
+              <Database size={14} />
+              <span>All Physics Content Ready</span>
+            </div>
+            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+              10/10 chapters loaded
+            </div>
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
           </div>
           
           {/* Error Display */}
@@ -407,6 +500,7 @@ Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
         </div>
       </div>
 
+<<<<<<< HEAD
       {/* Hidden file input */}
       <input
         ref={fileInputRef}
@@ -416,6 +510,8 @@ Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
         onChange={handleFileUpload}
         style={{ display: 'none' }}
       />
+=======
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
@@ -432,7 +528,11 @@ Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
               </h2>
               <p className="text-sm text-gray-500 dark:text-gray-400">
                 {selectedChapter 
+<<<<<<< HEAD
                   ? `Local storage mode • ${hasChapterData ? 'Content loaded' : 'No content yet'}`
+=======
+                  ? `Local storage mode • Content ready`
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
                   : 'Choose a physics chapter from the sidebar'
                 }
               </p>
@@ -527,4 +627,8 @@ Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
       />
     </div>
   );
+<<<<<<< HEAD
 };
+=======
+};
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f

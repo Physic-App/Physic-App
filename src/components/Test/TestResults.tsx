@@ -40,10 +40,14 @@ const TestResults: React.FC<TestResultsProps> = ({ session, onRetakeTest, onNewT
     content += `Topic: ${session.configuration.topic}\n`;
     content += `Difficulty: ${session.configuration.difficulty}\n`;
     content += `Questions: ${session.totalQuestions}\n`;
+<<<<<<< HEAD
     const displayType = session.configuration.questionType === 'mcq' ? 'Quiz' : 
                        session.configuration.questionType === 'short-answer' ? 'Short Answer' : 
                        session.configuration.questionType.toUpperCase();
     content += `Type: ${displayType}\n\n`;
+=======
+    content += `Type: ${session.configuration.questionType.toUpperCase()}\n\n`;
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
     session.questions.forEach((question, index) => {
       content += `Question ${index + 1}:\n`;
@@ -133,9 +137,13 @@ const TestResults: React.FC<TestResultsProps> = ({ session, onRetakeTest, onNewT
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Question Type:</span>
+<<<<<<< HEAD
             <p className="font-medium text-gray-900 dark:text-gray-100">
               {session.configuration.questionType === 'mcq' ? 'Quiz' : session.configuration.questionType === 'short-answer' ? 'Short Answer' : session.configuration.questionType.toUpperCase()}
             </p>
+=======
+            <p className="font-medium text-gray-900 dark:text-gray-100">{session.configuration.questionType.toUpperCase()}</p>
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Completed:</span>

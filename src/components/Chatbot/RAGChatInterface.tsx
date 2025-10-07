@@ -8,7 +8,11 @@ import { MessageCard } from './MessageCard';
 import { TypingIndicator } from './TypingIndicator';
 import { BookmarkSidebar } from './BookmarkSidebar';
 import ThemeToggle from '../Navigation/ThemeToggle';
+<<<<<<< HEAD
 // import { useRAGChat } from '../../hooks/useRAGChat';
+=======
+import { useRAGChat } from '../../hooks/useRAGChat';
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
 export const RAGChatInterface: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
@@ -21,6 +25,7 @@ export const RAGChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+<<<<<<< HEAD
   // Mock RAG Chat functionality (hook doesn't exist yet)
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -40,6 +45,15 @@ export const RAGChatInterface: React.FC = () => {
       timestamp: new Date()
     };
   };
+=======
+  // RAG Chat Hook
+  const { sendMessage, isLoading, error, isBackendHealthy } = useRAGChat({
+    enableRAG: true,
+    fallbackToMock: true,
+    chapterId: selectedChapter?.id || '',
+    chapterTitle: selectedChapter?.title || '',
+  });
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -105,7 +119,11 @@ ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, e
     // Welcome message for new chat
     const welcomeMessage: Message = {
       id: Date.now().toString(),
+<<<<<<< HEAD
       content: `Hello! 👋 I'm your physics assistant for **${selectedChapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?
+=======
+      content: `Hello! I'm here to help you with **${selectedChapter.title}**. Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
 ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, ensure the backend server is running.*' : '✅ *Connected to physics knowledge base.*'}`,
       isBot: true,
@@ -159,13 +177,22 @@ ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, e
       // Send message to RAG system
       const result = await sendMessage(
         currentInput,
+<<<<<<< HEAD
         selectedChapter.id,
         selectedChapter.title
+=======
+        newMessages,
+        selectedSessionId || undefined
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       );
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
+<<<<<<< HEAD
         content: result.content,
+=======
+        content: result.response,
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
         isBot: true,
         timestamp: new Date(),
       };

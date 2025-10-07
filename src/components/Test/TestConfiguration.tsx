@@ -201,9 +201,13 @@ const TestConfiguration: React.FC<TestConfigurationProps> = ({ onStartTest, isLo
             </div>
             <div>
               <span className="text-gray-600 dark:text-gray-400">Type:</span>
+<<<<<<< HEAD
               <p className="font-medium text-gray-900 dark:text-gray-100">
                 {config.questionType === 'mcq' ? 'Quiz' : config.questionType === 'short-answer' ? 'Short Answer' : config.questionType.toUpperCase()}
               </p>
+=======
+              <p className="font-medium text-gray-900 dark:text-gray-100">{config.questionType.toUpperCase()}</p>
+>>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
             </div>
             <div>
               <span className="text-gray-600 dark:text-gray-400">Difficulty:</span>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PDF Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <h1>PDF Test Tool</h1>
+    <input type="file" id="pdfFile" accept=".pdf" />
+    <div id="result"></div>
+
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        document.getElementById('pdfFile').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '<p>Processing PDF...</p>';
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+                
+                let fullText = '';
+                for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                    const page = await pdf.getPage(pageNum);
+                    const textContent = await page.getTextContent();
+                    const pageText = textContent.items
+                        .map(item => item.str)
+                        .join(' ');
+                    fullText += `Page ${pageNum}: ${pageText}\n\n`;
+                }
+
+                resultDiv.innerHTML = `
+                    <h3>✅ PDF Successfully Processed!</h3>
+                    <p><strong>Pages:</strong> ${pdf.numPages}</p>
+                    <p><strong>Text Length:</strong> ${fullText.length} characters</p>
+                    <h4>Extracted Text:</h4>
+                    <pre style="background: #f5f5f5; padding: 10px; max-height: 300px; overflow-y: auto;">${fullText}</pre>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>❌ PDF Processing Failed</h3>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                    <p>This PDF cannot be processed by PDF.js. It may be corrupted or have non-standard formatting.</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>
