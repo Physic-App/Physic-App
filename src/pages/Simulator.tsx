@@ -1,18 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-<<<<<<< HEAD
-import { Zap, Gauge, Lightbulb } from 'lucide-react';
-=======
 import { Lightbulb, Zap, Gauge } from 'lucide-react';
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
 const Simulator: React.FC = () => {
   const navigate = useNavigate();
   
   const simulators = [
     {
-<<<<<<< HEAD
-=======
       id: 'light-reflection',
       title: 'Light: Reflection and Refraction',
       description: 'Explore how light behaves when it hits mirrors and passes through different materials',
@@ -22,7 +16,6 @@ const Simulator: React.FC = () => {
       borderColor: 'border-yellow-200 dark:border-yellow-700'
     },
     {
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       id: 'force-motion',
       title: 'Force and Law of Motion',
       description: 'Interactive simulation of forces, acceleration, and Newton\'s laws',
@@ -39,41 +32,20 @@ const Simulator: React.FC = () => {
       color: 'from-green-500 to-teal-600',
       bgColor: 'bg-green-50 dark:bg-green-900/20',
       borderColor: 'border-green-200 dark:border-green-700'
-<<<<<<< HEAD
-    },
-    {
-      id: 'light-reflection',
-      title: 'Light and Reflection',
-      description: 'Interactive simulations for light behavior, reflection, and optical phenomena',
-      icon: Lightbulb,
-      color: 'from-yellow-500 to-orange-600',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-      borderColor: 'border-yellow-200 dark:border-yellow-700'
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     }
   ];
 
   const handleSimulatorClick = (simulatorId: string) => {
     switch (simulatorId) {
-<<<<<<< HEAD
-=======
       case 'light-reflection':
         navigate('/app/simulator/light');
         break;
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       case 'force-motion':
         navigate('/app/simulator/force');
         break;
       case 'electricity':
         navigate('/app/simulator/electricity');
         break;
-<<<<<<< HEAD
-      case 'light-reflection':
-        navigate('/app/simulator/light');
-        break;
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       default:
         console.log(`Opening simulator: ${simulatorId}`);
     }
