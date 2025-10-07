@@ -8,7 +8,7 @@ import { MessageCard } from './MessageCard';
 import { TypingIndicator } from './TypingIndicator';
 import { BookmarkSidebar } from './BookmarkSidebar';
 import ThemeToggle from '../Navigation/ThemeToggle';
-import { useRAGChat } from '../../hooks/useRAGChat';
+// import { useRAGChat } from '../../hooks/useRAGChat';
 
 export const RAGChatInterface: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
@@ -21,13 +21,25 @@ export const RAGChatInterface: React.FC = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // RAG Chat Hook
-  const { sendMessage, isLoading, error, isBackendHealthy } = useRAGChat({
-    enableRAG: true,
-    fallbackToMock: true,
-    chapterId: selectedChapter?.id || '',
-    chapterTitle: selectedChapter?.title || '',
-  });
+  // Mock RAG Chat functionality (hook doesn't exist yet)
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isBackendHealthy] = useState(false); // Always false for now
+
+  const sendMessage = async (message: string, chapterId: string, chapterTitle: string) => {
+    setIsLoading(true);
+    setError(null);
+    
+    // Simulate API call delay
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    // For now, return a mock response
+    return {
+      content: `Mock response for "${message}" in ${chapterTitle}`,
+      isBot: true,
+      timestamp: new Date()
+    };
+  };
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -93,7 +105,7 @@ ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, e
     // Welcome message for new chat
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${selectedChapter.title}**. Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.
+      content: `Hello! 👋 I'm your physics assistant for **${selectedChapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?
 
 ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, ensure the backend server is running.*' : '✅ *Connected to physics knowledge base.*'}`,
       isBot: true,
@@ -147,13 +159,13 @@ ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, e
       // Send message to RAG system
       const result = await sendMessage(
         currentInput,
-        newMessages,
-        selectedSessionId || undefined
+        selectedChapter.id,
+        selectedChapter.title
       );
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: result.response,
+        content: result.content,
         isBot: true,
         timestamp: new Date(),
       };

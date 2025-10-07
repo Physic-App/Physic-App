@@ -9,8 +9,8 @@ import { TypingIndicator } from './TypingIndicator';
 import { BookmarkSidebar } from './BookmarkSidebar';
 import ThemeToggle from '../Navigation/ThemeToggle';
 import { useLocalRAGChat } from '../../hooks/useLocalRAGChat';
-import { browserPDFProcessor } from '../../services/browserPDFProcessor';
 import { localStorageRAG } from '../../services/localStorageRAG';
+import { runAllChapterIsolationTests } from '../../utils/chatbotTests';
 
 export const LocalRAGChatInterface: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
@@ -25,12 +25,8 @@ export const LocalRAGChatInterface: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Local RAG Chat Hook
-  const { sendMessage, isLoading, error, hasChapterData } = useLocalRAGChat({
-    chapterId: selectedChapter?.id || '',
-    chapterTitle: selectedChapter?.title || '',
-    useLocalStorage: true,
-  });
+  // Use real Local RAG Chat functionality
+  const { isLoading, error, hasChapterData, sendMessage, loadSampleData, uploadPDFs, getStorageInfo } = useLocalRAGChat();
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -53,24 +49,31 @@ export const LocalRAGChatInterface: React.FC = () => {
     return words.join(' ') + (firstMessage.split(' ').length > 4 ? '...' : '');
   };
 
-  const handleChapterSelect = (chapter: Chapter) => {
+  const handleChapterSelect = async (chapter: Chapter) => {
     setSelectedChapter(chapter);
     setMessages([]);
     setSelectedSessionId(null);
     
-    const chapterHasData = localStorageRAG.getChapterRAGData(chapter.id) !== null;
+    // Check if chapter data exists
+    const chapterData = await localStorageRAG.getChapterData(chapter.id);
+    let chapterHasData = !!chapterData;
+    
+    // If no data exists, try to load sample data automatically
+    if (!chapterHasData) {
+      try {
+        await loadSampleData();
+        // Check again after loading sample data
+        const newChapterData = await localStorageRAG.getChapterData(chapter.id);
+        chapterHasData = !!newChapterData;
+      } catch (error) {
+        console.error('Failed to load sample data:', error);
+      }
+    }
     
     // Welcome message for new chapter
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${chapter.title}**. 
-
-${chapterHasData 
-  ? '✅ *I have your textbook content loaded and ready to answer questions!*' 
-  : '⚠️ *No content loaded for this chapter yet. Upload PDFs or load sample data to get started.*'
-}
-
-Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
+      content: `Hello! 👋 I'm your physics assistant for **${chapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
       isBot: true,
       timestamp: new Date(),
     };
@@ -94,25 +97,25 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
     }
   };
 
-  const handleNewChat = () => {
+  const handleNewChat = async () => {
     if (!selectedChapter) return;
     
     setSelectedSessionId(null);
     setMessages([]);
     
-    const chapterHasData = localStorageRAG.getChapterRAGData(selectedChapter.id) !== null;
+    // Check if chapter data exists
+    const chapterData = await localStorageRAG.getChapterData(selectedChapter.id);
+    const chapterHasData = !!chapterData;
     
     // Welcome message for new chat
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${selectedChapter.title}**.
+      content: `Hello! 👋 I'm your physics assistant for **${selectedChapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?
 
 ${chapterHasData 
   ? '✅ *I have your textbook content loaded and ready to answer questions!*' 
   : '⚠️ *No content loaded for this chapter yet. Upload PDFs or load sample data to get started.*'
-}
-
-Ask me anything about this chapter - from basic concepts to complex numerical problems.`,
+}`,
       isBot: true,
       timestamp: new Date(),
     };
@@ -164,15 +167,16 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
       // Send message to local RAG system
       const result = await sendMessage(
         currentInput,
-        newMessages,
-        selectedSessionId || undefined
+        selectedChapter.id,
+        selectedChapter.title
       );
 
       const botResponse: Message = {
         id: (Date.now() + 1).toString(),
-        content: result.response,
+        content: result.content,
         isBot: true,
         timestamp: new Date(),
+        isBookmarked: false,
       };
 
       const updatedMessages = [...newMessages, botResponse];
@@ -198,6 +202,7 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
         content: "I'm sorry, I encountered an error processing your question. Please try again or rephrase your question.",
         isBot: true,
         timestamp: new Date(),
+        isBookmarked: false,
       };
 
       const updatedMessages = [...newMessages, errorResponse];
@@ -231,15 +236,14 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
     console.log(`📁 Processing ${files.length} PDF files...`);
     
     try {
-      const result = await browserPDFProcessor.processPDFFiles(files);
-      console.log('Processing result:', result);
+      await uploadPDFs(Array.from(files));
       
       // Refresh chapter data status
       if (selectedChapter) {
-        handleChapterSelect(selectedChapter);
+        await handleChapterSelect(selectedChapter);
       }
       
-      alert(`Processed ${result.successfulFiles}/${result.totalFiles} files successfully!`);
+      alert(`Successfully processed ${files.length} PDF file(s)!`);
     } catch (error) {
       console.error('Error processing files:', error);
       alert('Error processing PDF files. Please try again.');
@@ -251,12 +255,20 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
     }
   };
 
-  const handleLoadSampleData = () => {
-    browserPDFProcessor.loadSampleData();
-    if (selectedChapter) {
-      handleChapterSelect(selectedChapter);
+  const handleLoadSampleData = async () => {
+    try {
+      await loadSampleData();
+      
+      // Refresh chapter data status
+      if (selectedChapter) {
+        await handleChapterSelect(selectedChapter);
+      }
+      
+      alert('Sample physics data loaded for all chapters!');
+    } catch (error) {
+      console.error('Error loading sample data:', error);
+      alert('Error loading sample data. Please try again.');
     }
-    alert('Sample physics data loaded for all chapters!');
   };
 
   const bookmarkedMessages = messages.filter(msg => msg.isBookmarked);
@@ -265,7 +277,16 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
     handleBookmark(messageId);
   };
 
-  const storageInfo = localStorageRAG.getStorageInfo();
+  const [storageInfo, setStorageInfo] = useState({ totalChapters: 0, totalSize: 0, chapters: [] });
+
+  // Load storage info on component mount
+  useEffect(() => {
+    const loadStorageInfo = async () => {
+      const info = await getStorageInfo();
+      setStorageInfo(info);
+    };
+    loadStorageInfo();
+  }, [getStorageInfo]);
 
   return (
     <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
@@ -278,7 +299,7 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
               <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
                 Physics AI
               </h1>
-              <Database size={16} className="text-blue-500" title="Local Storage Mode" />
+              <Database size={16} className="text-blue-500" />
             </div>
             <ThemeToggle />
           </div>
@@ -311,8 +332,43 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
                   <span>Load Sample Data</span>
                 </button>
                 
+                <button
+                  onClick={async () => {
+                    if (!selectedChapter) {
+                      alert('Please select a chapter first');
+                      return;
+                    }
+                    
+                    try {
+                      const { sendMessage } = useLocalRAGChat();
+                      // Create a wrapper function for testing
+                      const testWrapper = async (message: string, chapterId: string) => {
+                        const response = await sendMessage(message, chapterId, 'Test Chapter');
+                        return response.content;
+                      };
+                      const results = await runAllChapterIsolationTests(testWrapper);
+                      
+                      const summary = `Chapter Isolation Test Results:
+Total Tests: ${results.total}
+Passed: ${results.passed}
+Failed: ${results.failed}
+Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
+                      
+                      console.log('Test Results:', results);
+                      alert(summary);
+                    } catch (error) {
+                      console.error('Test failed:', error);
+                      alert('Test failed. Check console for details.');
+                    }
+                  }}
+                  className="w-full flex items-center justify-center space-x-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 mt-2"
+                >
+                  <Plus size={14} />
+                  <span>Test Chapter Isolation</span>
+                </button>
+                
                 <div className="text-xs text-gray-600 dark:text-gray-300">
-                  Chapters: {storageInfo.availableChapters.length}/10
+                  Chapters: {storageInfo.totalChapters}/10
                 </div>
               </div>
             )}

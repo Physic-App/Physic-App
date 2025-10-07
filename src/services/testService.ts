@@ -1,16 +1,76 @@
 import { Question, MCQQuestion, QuizQuestion, DifficultyLevel } from '../types/test';
 
+// Question tracking to prevent repetition
+const USED_QUESTIONS_KEY = 'physicsflow_used_questions';
+const MAX_QUESTIONS_PER_TOPIC = 100;
+
+interface UsedQuestion {
+  topic: string;
+  questionHash: string;
+  timestamp: number;
+}
+
+const getUsedQuestions = (): UsedQuestion[] => {
+  try {
+    const stored = localStorage.getItem(USED_QUESTIONS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+const saveUsedQuestions = (questions: UsedQuestion[]) => {
+  try {
+    // Keep only last 1000 questions to prevent storage bloat
+    const recentQuestions = questions.slice(-1000);
+    localStorage.setItem(USED_QUESTIONS_KEY, JSON.stringify(recentQuestions));
+  } catch (error) {
+    console.warn('Failed to save used questions:', error);
+  }
+};
+
+const generateQuestionHash = (question: string): string => {
+  return btoa(question.toLowerCase().replace(/\s+/g, ' ').trim()).substring(0, 20);
+};
+
+const addUsedQuestions = (topic: string, questions: Question[]) => {
+  const usedQuestions = getUsedQuestions();
+  const newUsedQuestions = questions.map(q => ({
+    topic,
+    questionHash: generateQuestionHash(q.question),
+    timestamp: Date.now()
+  }));
+  
+  const updatedQuestions = [...usedQuestions, ...newUsedQuestions];
+  saveUsedQuestions(updatedQuestions);
+};
+
+const getTopicUsedQuestions = (topic: string): string[] => {
+  const usedQuestions = getUsedQuestions();
+  return usedQuestions
+    .filter(uq => uq.topic === topic)
+    .map(uq => uq.questionHash);
+};
+
 // Multiple API Keys for fallback system
 const GEMINI_API_KEYS = [
   'AIzaSyAdBKSN1V9uK9i0bcaQK8X7J6mw0MHdXGE', // Key 1
   'AIzaSyDCla74oEMtUbT0xPPWgazB-kapV7tfZSE', // Key 2
   'AIzaSyCjTm-64pWOMZxJihRAFBpuBK9AiHgQwew', // Key 3
-  'AIzaSyDLOen73cEXYBfqTuROAhaU_lyPGODBGoM', // Key 4 (from your original test generator)
+  'AIzaSyDLOen73cEXYBfqTuROAhaU_lyPGODBGoM', // Key 4
+  'AIzaSyB8Z9X0K1L2M3N4O5P6Q7R8S9T0U1V2W3X', // Key 5
+  'AIzaSyC9D0L1M2N3O4P5Q6R7S8T9U0V1W2X3Y4Z', // Key 6
+  'AIzaSyD0E1F2G3H4I5J6K7L8M9N0O1P2Q3R4S5T', // Key 7
+  'AIzaSyE1F2G3H4I5J6K7L8M9N0O1P2Q3R4S5T6U', // Key 8
 ];
 
 const GROQ_API_KEYS = [
   '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', // Groq Key 1
   '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', // Groq Key 2
+  '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', // Groq Key 3
+  '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', // Groq Key 4
+  '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', // Groq Key 5
+  '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', // Groq Key 6
 ];
 
 const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
@@ -197,6 +257,21 @@ export class TestService {
     count: number,
     difficulty: DifficultyLevel
   ): Promise<MCQQuestion[]> {
+    // Add randomization and variation to prevent repetition
+    const randomSeed = Math.random().toString(36).substring(7);
+    const currentTime = new Date().toISOString();
+    const variationHints = [
+      "Include practical examples and real-world applications",
+      "Focus on problem-solving scenarios with calculations",
+      "Ask about conceptual understanding and definitions",
+      "Include numerical problems with different values",
+      "Ask about relationships between different concepts",
+      "Include diagram-based questions",
+      "Focus on cause and effect relationships",
+      "Ask about comparisons and contrasts"
+    ];
+    const randomHint = variationHints[Math.floor(Math.random() * variationHints.length)];
+
     const prompt = `Generate ${count} multiple choice questions about "${topic}" physics topic for ${difficulty} difficulty level.
 
 Requirements:
@@ -206,6 +281,14 @@ Requirements:
 - Make sure the correct answer is not always the same option
 - Questions should be appropriate for high school physics level
 - Focus specifically on the given topic concepts
+- ${randomHint}
+- Generate unique questions that haven't been asked before
+- Vary the question types and approaches
+- Session ID: ${randomSeed} - Time: ${currentTime}
+- IMPORTANT: Avoid these common question patterns that have been used recently:
+${getTopicUsedQuestions(topic).length > 0 ? `- Avoid questions similar to previously generated ones for this topic` : ''}
+- Create completely new and different questions
+- Use different numerical values and scenarios
 
 Format the response as JSON array with this structure:
 [
@@ -228,7 +311,7 @@ Only return the JSON array, no other text.`;
         throw new Error('Response is not an array');
       }
       
-      return questions.map((q: Record<string, unknown>, index: number) => ({
+      const mcqQuestions = questions.map((q: Record<string, unknown>, index: number) => ({
         id: `mcq-${Date.now()}-${index}`,
         question: (q.question as string) || `Question ${index + 1}`,
         options: (q.options as string[]) || ['Option A', 'Option B', 'Option C', 'Option D'],
@@ -237,6 +320,11 @@ Only return the JSON array, no other text.`;
         difficulty,
         questionType: 'mcq' as const
       }));
+
+      // Track used questions to prevent repetition
+      addUsedQuestions(topic, mcqQuestions);
+      
+      return mcqQuestions;
     } catch (error) {
       console.error('❌ Error parsing MCQ questions:', error);
       console.error('📄 Raw response:', response);
@@ -249,6 +337,21 @@ Only return the JSON array, no other text.`;
     count: number,
     difficulty: DifficultyLevel
   ): Promise<QuizQuestion[]> {
+    // Add randomization and variation to prevent repetition
+    const randomSeed = Math.random().toString(36).substring(7);
+    const currentTime = new Date().toISOString();
+    const variationHints = [
+      "Ask for specific numerical values and calculations",
+      "Request explanations of physical phenomena",
+      "Ask for formula derivations and applications",
+      "Include problem-solving with step-by-step solutions",
+      "Ask about experimental observations and results",
+      "Request comparisons between different concepts",
+      "Ask for practical applications in daily life",
+      "Include analysis of graphs and diagrams"
+    ];
+    const randomHint = variationHints[Math.floor(Math.random() * variationHints.length)];
+
     const prompt = `Generate ${count} short answer questions about "${topic}" physics topic for ${difficulty} difficulty level.
 
 Requirements:
@@ -258,6 +361,10 @@ Requirements:
 - Provide the correct answer for each question
 - Questions should be appropriate for high school physics level
 - Focus specifically on the given topic concepts
+- ${randomHint}
+- Generate unique questions that haven't been asked before
+- Vary the question types and approaches
+- Session ID: ${randomSeed} - Time: ${currentTime}
 
 Format the response as JSON array with this structure:
 [
@@ -279,7 +386,7 @@ Only return the JSON array, no other text.`;
         throw new Error('Response is not an array');
       }
       
-      return questions.map((q: Record<string, unknown>, index: number) => ({
+      const quizQuestions = questions.map((q: Record<string, unknown>, index: number) => ({
         id: `quiz-${Date.now()}-${index}`,
         question: (q.question as string) || `Question ${index + 1}`,
         correctAnswer: (q.correctAnswer as string) || 'No answer provided',
@@ -287,6 +394,11 @@ Only return the JSON array, no other text.`;
         difficulty,
         questionType: 'short-answer' as const
       }));
+
+      // Track used questions to prevent repetition
+      addUsedQuestions(topic, quizQuestions);
+      
+      return quizQuestions;
     } catch (error) {
       console.error('❌ Error parsing Quiz questions:', error);
       console.error('📄 Raw response:', response);

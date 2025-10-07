@@ -40,7 +40,10 @@ const TestResults: React.FC<TestResultsProps> = ({ session, onRetakeTest, onNewT
     content += `Topic: ${session.configuration.topic}\n`;
     content += `Difficulty: ${session.configuration.difficulty}\n`;
     content += `Questions: ${session.totalQuestions}\n`;
-    content += `Type: ${session.configuration.questionType.toUpperCase()}\n\n`;
+    const displayType = session.configuration.questionType === 'mcq' ? 'Quiz' : 
+                       session.configuration.questionType === 'short-answer' ? 'Short Answer' : 
+                       session.configuration.questionType.toUpperCase();
+    content += `Type: ${displayType}\n\n`;
 
     session.questions.forEach((question, index) => {
       content += `Question ${index + 1}:\n`;
@@ -130,7 +133,9 @@ const TestResults: React.FC<TestResultsProps> = ({ session, onRetakeTest, onNewT
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Question Type:</span>
-            <p className="font-medium text-gray-900 dark:text-gray-100">{session.configuration.questionType.toUpperCase()}</p>
+            <p className="font-medium text-gray-900 dark:text-gray-100">
+              {session.configuration.questionType === 'mcq' ? 'Quiz' : session.configuration.questionType === 'short-answer' ? 'Short Answer' : session.configuration.questionType.toUpperCase()}
+            </p>
           </div>
           <div>
             <span className="text-gray-600 dark:text-gray-400">Completed:</span>

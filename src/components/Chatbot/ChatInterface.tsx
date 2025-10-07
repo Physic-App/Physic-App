@@ -49,7 +49,7 @@ export const ChatInterface: React.FC = () => {
     // Welcome message for new chapter
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${chapter.title}**. Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
+      content: `Hello! 👋 I'm your physics assistant for **${chapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
       isBot: true,
       timestamp: new Date(),
     };
@@ -82,7 +82,7 @@ export const ChatInterface: React.FC = () => {
     // Welcome message for new chat
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${selectedChapter.title}**. Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
+      content: `Hello! 👋 I'm your physics assistant for **${selectedChapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
       isBot: true,
       timestamp: new Date(),
     };

@@ -1,6 +1,31 @@
 import { supabase } from './supabase';
 import { activityService } from './activity';
 
+// Local storage fallback for progress tracking
+const LOCAL_PROGRESS_KEY = 'physicsflow_local_progress';
+
+interface LocalProgress {
+  sections: Record<string, number[]>; // chapterId -> sectionIds[]
+  videos: Record<string, number[]>; // chapterId -> videoIds[]
+}
+
+const getLocalProgress = (): LocalProgress => {
+  try {
+    const stored = localStorage.getItem(LOCAL_PROGRESS_KEY);
+    return stored ? JSON.parse(stored) : { sections: {}, videos: {} };
+  } catch {
+    return { sections: {}, videos: {} };
+  }
+};
+
+const saveLocalProgress = (progress: LocalProgress) => {
+  try {
+    localStorage.setItem(LOCAL_PROGRESS_KEY, JSON.stringify(progress));
+  } catch (error) {
+    console.warn('Failed to save progress to local storage:', error);
+  }
+};
+
 export type ProgressType = 'section_completed' | 'video_watched' | 'chapter_completed';
 
 export interface UserProgress {
@@ -19,28 +44,46 @@ export const progressService = {
   async markSectionCompleted(chapterId: number, sectionId: number, studyTimeMinutes = 0) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('User not authenticated');
+      if (!user) {
+        console.warn('⚠️ User not authenticated, progress not saved');
+        return null;
+      }
+
+      const { data, error } = await supabase
+        .from('user_progress')
+        .upsert({
+          user_id: user.id,
+          chapter_id: chapterId,
+          section_id: sectionId,
+          progress_type: 'section_completed',
+          study_time_minutes: studyTimeMinutes,
+        }, {
+          onConflict: 'user_id,chapter_id,section_id,progress_type'
+        });
+
+      if (error) {
+        console.error('❌ Error marking section completed:', error);
+        return null;
+      }
+
+      return data;
     } catch (error) {
-      // Supabase not available, return mock data
-      return [];
-    }
-
-
-    const { data, error } = await supabase
-      .from('user_progress')
-      .upsert({
-        user_id: user.id,
-        chapter_id: chapterId,
-        section_id: sectionId,
-        progress_type: 'section_completed',
-        study_time_minutes: studyTimeMinutes,
-      }, {
-        onConflict: 'user_id,chapter_id,section_id,progress_type'
-      });
-
-    if (error) {
-      console.error('❌ Error marking section completed:', error);
-      throw error;
+      console.warn('⚠️ Supabase not available, saving to local storage:', error);
+      
+      // Fallback to local storage
+      const progress = getLocalProgress();
+      const chapterKey = chapterId.toString();
+      
+      if (!progress.sections[chapterKey]) {
+        progress.sections[chapterKey] = [];
+      }
+      
+      if (!progress.sections[chapterKey].includes(sectionId)) {
+        progress.sections[chapterKey].push(sectionId);
+        saveLocalProgress(progress);
+      }
+      
+      return null;
     }
     
     
@@ -51,31 +94,52 @@ export const progressService = {
       console.warn('⚠️ Failed to log section activity:', activityError);
       // Don't throw - progress tracking should still work even if activity logging fails
     }
-    
-    return data;
   },
 
   // Mark a video as watched
   async markVideoWatched(chapterId: number, videoId: number, studyTimeMinutes = 0) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        console.warn('⚠️ User not authenticated, progress not saved');
+        return null;
+      }
 
+      const { data, error } = await supabase
+        .from('user_progress')
+        .upsert({
+          user_id: user.id,
+          chapter_id: chapterId,
+          video_id: videoId,
+          progress_type: 'video_watched',
+          study_time_minutes: studyTimeMinutes,
+        }, {
+          onConflict: 'user_id,video_id,progress_type'
+        });
 
-    const { data, error } = await supabase
-      .from('user_progress')
-      .upsert({
-        user_id: user.id,
-        chapter_id: chapterId,
-        video_id: videoId,
-        progress_type: 'video_watched',
-        study_time_minutes: studyTimeMinutes,
-      }, {
-        onConflict: 'user_id,video_id,progress_type'
-      });
+      if (error) {
+        console.error('❌ Error marking video watched:', error);
+        return null;
+      }
 
-    if (error) {
-      console.error('❌ Error marking video watched:', error);
-      throw error;
+      return data;
+    } catch (error) {
+      console.warn('⚠️ Supabase not available, saving to local storage:', error);
+      
+      // Fallback to local storage
+      const progress = getLocalProgress();
+      const chapterKey = chapterId.toString();
+      
+      if (!progress.videos[chapterKey]) {
+        progress.videos[chapterKey] = [];
+      }
+      
+      if (!progress.videos[chapterKey].includes(videoId)) {
+        progress.videos[chapterKey].push(videoId);
+        saveLocalProgress(progress);
+      }
+      
+      return null;
     }
     
     
@@ -86,48 +150,63 @@ export const progressService = {
       console.warn('⚠️ Failed to log video activity:', activityError);
       // Don't throw - progress tracking should still work even if activity logging fails
     }
-    
-    return data;
   },
 
   // Get user's completed sections for a chapter
   async getCompletedSections(chapterId: number): Promise<number[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data, error } = await supabase
-      .from('user_progress')
-      .select('section_id')
-      .eq('user_id', user.id)
-      .eq('chapter_id', chapterId)
-      .eq('progress_type', 'section_completed');
-
-    if (error) {
-      console.error('Error fetching completed sections:', error);
-      return [];
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
+    } catch (error) {
+      console.warn('⚠️ Supabase not available, checking local storage');
+      const progress = getLocalProgress();
+      return progress.sections[chapterId.toString()] || [];
     }
 
-    return (data || []).map(item => item.section_id).filter(Boolean);
+    try {
+      const { data, error } = await supabase
+        .from('user_progress')
+        .select('section_id')
+        .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
+        .eq('progress_type', 'section_completed');
+
+      if (error) {
+        console.error('Error fetching completed sections:', error);
+        return [];
+      }
+
+      return (data || []).map(item => item.section_id).filter(Boolean);
+    } catch (error) {
+      console.warn('⚠️ Error fetching completed sections:', error);
+      return [];
+    }
   },
 
   // Get user's watched videos for a chapter
   async getWatchedVideos(chapterId: number): Promise<number[]> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return [];
 
-    const { data, error } = await supabase
-      .from('user_progress')
-      .select('video_id')
-      .eq('user_id', user.id)
-      .eq('chapter_id', chapterId)
-      .eq('progress_type', 'video_watched');
+      const { data, error } = await supabase
+        .from('user_progress')
+        .select('video_id')
+        .eq('user_id', user.id)
+        .eq('chapter_id', chapterId)
+        .eq('progress_type', 'video_watched');
 
-    if (error) {
-      console.error('Error fetching watched videos:', error);
-      return [];
+      if (error) {
+        console.error('Error fetching watched videos:', error);
+        return [];
+      }
+
+      return (data || []).map(item => item.video_id).filter(Boolean);
+    } catch (error) {
+      console.warn('⚠️ Error fetching watched videos, checking local storage:', error);
+      const progress = getLocalProgress();
+      return progress.videos[chapterId.toString()] || [];
     }
-
-    return (data || []).map(item => item.video_id).filter(Boolean);
   },
 
   // Get overall user progress stats

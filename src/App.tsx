@@ -143,7 +143,7 @@ function AppContent() {
               user ? (
                 <Navigate to="/app" replace />
               ) : (
-                <Landing />
+                <Navigate to="/auth" replace />
               )
             } />
             
@@ -168,14 +168,6 @@ function AppContent() {
                 </div>
               </ProtectedRoute>
             } />
-            <Route path="/app/simulator/light" element={
-              <ProtectedRoute>
-                <div>
-                  <Navbar onLogout={handleLogout} />
-                  <LightSimulator />
-                </div>
-              </ProtectedRoute>
-            } />
             <Route path="/app/simulator/force" element={
               <ProtectedRoute>
                 <div>
@@ -189,6 +181,14 @@ function AppContent() {
                 <div>
                   <Navbar onLogout={handleLogout} />
                   <ElectricitySimulator />
+                </div>
+              </ProtectedRoute>
+            } />
+            <Route path="/app/simulator/light" element={
+              <ProtectedRoute>
+                <div>
+                  <Navbar onLogout={handleLogout} />
+                  <LightSimulator />
                 </div>
               </ProtectedRoute>
             } />

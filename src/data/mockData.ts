@@ -115,6 +115,28 @@ export const mockChatSessions: ChatSession[] = [
 ];
 
 export const generateMockResponse = (question: string, chapterId: string): string => {
+  // Check for greetings and casual messages
+  const greetingPatterns = [
+    /^(hi|hello|hey|hiya|howdy)$/i,
+    /^(good morning|good afternoon|good evening)$/i,
+    /^(how are you|how's it going|what's up)$/i,
+    /^(thanks|thank you|thx)$/i,
+    /^(bye|goodbye|see you|farewell)$/i
+  ];
+  
+  const isGreeting = greetingPatterns.some(pattern => pattern.test(question.trim()));
+  
+  if (isGreeting) {
+    const chapterTitle = mockChapters.find(c => c.id === chapterId)?.title || 'Physics';
+    return `Hello! 👋 I'm your physics assistant for **${chapterTitle}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`;
+  }
+
+  // Handle very short or unclear messages
+  if (question.trim().length < 3) {
+    const chapterTitle = mockChapters.find(c => c.id === chapterId)?.title || 'Physics';
+    return `I'd be happy to help you with **${chapterTitle}**! Could you please ask a more specific question? For example, you could ask about:\n\n- Key concepts and definitions\n- Formulas and equations\n- Real-world applications\n- Practice problems\n- Step-by-step explanations`;
+  }
+
   const responses = {
     'force-and-pressure': [
       "**Force** is a push or pull that can change the state of motion of an object or change its shape.\n\n**Key Properties of Force:**\n- Force is a vector quantity (has magnitude and direction)\n- Unit: Newton (N)\n- Symbol: F\n\n**Types of Forces:**\n1. **Contact Forces:** Applied when objects touch (friction, normal force)\n2. **Non-contact Forces:** Act at a distance (gravity, magnetic force)\n\n**Force Formula:** $F = ma$ (Newton's Second Law)\n\n**Pressure** is force per unit area: $P = \\frac{F}{A}$\n- Unit: Pascal (Pa) or N/m²\n- Pressure increases when force increases or area decreases",
@@ -162,4 +184,4 @@ export const generateMockResponse = (question: string, chapterId: string): strin
   return chapterResponses[Math.floor(Math.random() * chapterResponses.length)];
 };
 
-export const fallbackMessage = "🤔 I couldn't find relevant information in the current chapter for your question. Please make sure your question is related to the selected chapter, or try rephrasing it with more specific physics terms.";
+export const fallbackMessage = "🤔 I couldn't find relevant information in the current chapter for your question. Please make sure your question is related to the selected chapter, or try rephrasing it with more specific physics terms.\n\n**Tips for better responses:**\n- Ask about specific concepts (e.g., 'What is pressure?')\n- Request examples or applications\n- Ask for step-by-step explanations\n- Mention formulas you want to understand";

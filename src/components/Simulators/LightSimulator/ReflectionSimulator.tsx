@@ -1,10 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Slider } from './ui/Slider';
-import { Toggle } from './ui/Toggle';
-import { FormulaPanel } from './ui/FormulaPanel';
-import { InfoPanel } from './ui/InfoPanel';
-import { getPhysicsExplanation } from '../../../data/physicsExplanations';
-import { RayAnimation, VisualEffects } from '../../../utils/visualEffects';
+import { Slider } from '../../ui/Slider';
+import { Toggle } from '../../ui/Toggle';
+import { FormulaPanel } from '../../ui/FormulaPanel';
 
 export const ReflectionSimulator: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -12,37 +9,23 @@ export const ReflectionSimulator: React.FC = () => {
   const [mirrorType, setMirrorType] = useState<'plane' | 'concave' | 'convex'>('plane');
   const [surfaceType, setSurfaceType] = useState<'smooth' | 'rough'>('smooth');
   const [objectDistance, setObjectDistance] = useState(30);
-  const [objectHeight, setObjectHeight] = useState(10);
   const [focalLength, setFocalLength] = useState(20);
-  const [showMultipleRays, setShowMultipleRays] = useState(false);
-  const [showNormal, setShowNormal] = useState(true);
-  const [showAngles, setShowAngles] = useState(true);
-  const [showImage, setShowImage] = useState(true);
-  const [enableAnimations, setEnableAnimations] = useState(true);
 
   const reflectedAngle = incidentAngle; // Law of reflection
 
   useEffect(() => {
-    if (enableAnimations) {
-      // Add a small delay for smooth animations
-      const timeoutId = setTimeout(() => {
-        drawReflection();
-      }, 50);
-      return () => clearTimeout(timeoutId);
-    } else {
+    const timer = setTimeout(() => {
       drawReflection();
-    }
-  }, [incidentAngle, mirrorType, surfaceType, objectDistance, objectHeight, focalLength, showMultipleRays, showNormal, showAngles, showImage, enableAnimations]);
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [incidentAngle, mirrorType, surfaceType, objectDistance, focalLength]);
 
   const drawReflection = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
     const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      console.warn('Canvas context not available');
-      return;
-    }
+    if (!ctx) return;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
@@ -59,27 +42,19 @@ export const ReflectionSimulator: React.FC = () => {
     
     // Draw incident and reflected rays
     if (surfaceType === 'smooth') {
-      if (showMultipleRays) {
-        drawMultipleRays(ctx, centerX, centerY, incidentAngle, reflectedAngle);
-      } else {
-        drawRays(ctx, centerX, centerY, incidentAngle, reflectedAngle);
-      }
+      drawRays(ctx, centerX, centerY, incidentAngle, reflectedAngle);
     } else {
       drawScatteredRays(ctx, centerX, centerY, incidentAngle);
     }
 
     // Draw normal line
-    if (showNormal) {
-      drawNormal(ctx, centerX, centerY);
-    }
+    drawNormal(ctx, centerX, centerY);
     
     // Draw angle measurements
-    if (showAngles) {
-      drawAngles(ctx, centerX, centerY, incidentAngle, reflectedAngle);
-    }
+    drawAngles(ctx, centerX, centerY, incidentAngle, reflectedAngle);
 
     // Draw image formation for spherical mirrors
-    if (mirrorType !== 'plane' && showImage) {
+    if (mirrorType !== 'plane') {
       drawImageFormation(ctx, centerX, centerY, objectDistance, focalLength, mirrorType);
     }
   };
@@ -107,16 +82,12 @@ export const ReflectionSimulator: React.FC = () => {
   const drawRays = (ctx: CanvasRenderingContext2D, x: number, y: number, incident: number, reflected: number) => {
     const rayLength = 120;
     
-    // Convert angles to radians for proper calculation
-    const incidentRad = incident * Math.PI / 180;
-    const reflectedRad = reflected * Math.PI / 180;
-    
-    // Incident ray - corrected coordinate system
+    // Incident ray
     ctx.strokeStyle = '#EF4444';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    const incidentX = x - rayLength * Math.sin(incidentRad);
-    const incidentY = y - rayLength * Math.cos(incidentRad);
+    const incidentX = x - rayLength * Math.sin(incident * Math.PI / 180);
+    const incidentY = y - rayLength * Math.cos(incident * Math.PI / 180);
     ctx.moveTo(incidentX, incidentY);
     ctx.lineTo(x, y);
     ctx.stroke();
@@ -124,54 +95,18 @@ export const ReflectionSimulator: React.FC = () => {
     // Add arrow
     drawArrow(ctx, incidentX, incidentY, x, y, '#EF4444');
     
-    // Reflected ray - corrected coordinate system
+    // Reflected ray
     ctx.strokeStyle = '#10B981';
     ctx.lineWidth = 3;
     ctx.beginPath();
-    const reflectedX = x + rayLength * Math.sin(reflectedRad);
-    const reflectedY = y - rayLength * Math.cos(reflectedRad);
+    const reflectedX = x + rayLength * Math.sin(reflected * Math.PI / 180);
+    const reflectedY = y - rayLength * Math.cos(reflected * Math.PI / 180);
     ctx.moveTo(x, y);
     ctx.lineTo(reflectedX, reflectedY);
     ctx.stroke();
     
     // Add arrow
     drawArrow(ctx, x, y, reflectedX, reflectedY, '#10B981');
-  };
-
-  const drawMultipleRays = (ctx: CanvasRenderingContext2D, x: number, y: number, incident: number, reflected: number) => {
-    const rayLength = 120;
-    const rayCount = 5;
-    
-    // Draw multiple incident rays from different points
-    for (let i = 0; i < rayCount; i++) {
-      const offset = (i - (rayCount - 1) / 2) * 20;
-      const incidentX = x - rayLength * Math.sin(incident * Math.PI / 180) + offset;
-      const incidentY = y - rayLength * Math.cos(incident * Math.PI / 180);
-      const intersectionX = x + offset * Math.sin(incident * Math.PI / 180) / Math.cos(incident * Math.PI / 180);
-      const intersectionY = y;
-      
-      // Incident ray
-      ctx.strokeStyle = `rgba(239, 68, 68, ${1 - i * 0.1})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(incidentX, incidentY);
-      ctx.lineTo(intersectionX, intersectionY);
-      ctx.stroke();
-      
-      // Reflected ray
-      ctx.strokeStyle = `rgba(16, 185, 129, ${1 - i * 0.1})`;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      const reflectedX = intersectionX + rayLength * Math.sin(reflected * Math.PI / 180);
-      const reflectedY = intersectionY - rayLength * Math.cos(reflected * Math.PI / 180);
-      ctx.moveTo(intersectionX, intersectionY);
-      ctx.lineTo(reflectedX, reflectedY);
-      ctx.stroke();
-      
-      // Add arrows
-      drawArrow(ctx, incidentX, incidentY, intersectionX, intersectionY, `rgba(239, 68, 68, ${1 - i * 0.1})`);
-      drawArrow(ctx, intersectionX, intersectionY, reflectedX, reflectedY, `rgba(16, 185, 129, ${1 - i * 0.1})`);
-    }
   };
 
   const drawScatteredRays = (ctx: CanvasRenderingContext2D, x: number, y: number, incident: number) => {
@@ -306,68 +241,14 @@ export const ReflectionSimulator: React.FC = () => {
     ctx.fillText('F', x + focal * 2, y + 20);
   };
 
-  // Correct magnification formula for spherical mirrors: m = -v/u
-  // where v = image distance, u = object distance
-  const calculateMagnification = () => {
-    if (mirrorType === 'plane') return 1;
-    
-    // For spherical mirrors: 1/f = 1/v + 1/u, so v = (f*u)/(u-f)
-    // Magnification m = -v/u = -f/(u-f)
-    const imageDistance = (focalLength * objectDistance) / (objectDistance - focalLength);
-    return -imageDistance / objectDistance;
-  };
-  
-  const magnification = calculateMagnification();
-  
-  // Calculate image properties for spherical mirrors
-  const calculateImageProperties = () => {
-    if (mirrorType === 'plane') {
-      return {
-        imageDistance: -objectDistance, // Virtual image behind mirror
-        imageHeight: objectHeight,
-        imageType: 'virtual' as const
-      };
-    }
-    
-    // Spherical mirror formula: 1/f = 1/v + 1/u
-    // Solving for v: v = (f*u)/(u-f)
-    const imageDistance = (focalLength * objectDistance) / (objectDistance - focalLength);
-    const imageHeight = Math.abs(magnification) * objectHeight;
-    
-    // Determine image characteristics
-    let imageType: 'real' | 'virtual';
-    if (imageDistance > 0) {
-      imageType = 'real';
-    } else {
-      imageType = 'virtual';
-    }
-    
-    return {
-      imageDistance,
-      imageHeight,
-      imageType
-    };
-  };
-  
-  const imageProps = calculateImageProperties();
+  const magnification = mirrorType !== 'plane' ? (-objectDistance + focalLength) / objectDistance : 1;
 
   return (
-    <div className="bg-white/95 backdrop-blur-md rounded-xl p-6 shadow-2xl border-2 border-blue-300">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-blue-100 rounded-xl">
-          <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-          </svg>
-        </div>
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">Reflection of Light</h2>
-          <p className="text-blue-600 text-sm">Law of Reflection & Mirror Physics</p>
-        </div>
-      </div>
+    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6">
+      <h2 className="text-2xl font-bold text-white mb-6">Reflection of Light</h2>
       
-      <div className="mb-6 p-4 bg-blue-100 border border-blue-300 rounded-lg">
-        <p className="text-blue-800 text-sm">
+      <div className="mb-6 p-4 bg-blue-500/20 border border-blue-400 rounded-lg">
+        <p className="text-blue-100 text-sm">
           <strong>Reflection:</strong> When light rays strike a surface and bounce back into the same medium. 
           The angle of incidence equals the angle of reflection (i = r), and both rays lie in the same plane as the normal.
         </p>
@@ -375,23 +256,18 @@ export const ReflectionSimulator: React.FC = () => {
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Canvas */}
-        <div className="lg:col-span-2 bg-gray-100 rounded-lg p-4 border-2 border-gray-300 shadow-lg">
-          <div className="relative">
-            <canvas
-              ref={canvasRef}
-              className="w-full h-96 bg-white rounded-xl border-2 border-blue-400 shadow-2xl"
-              style={{ minHeight: '400px' }}
-            />
-            <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg px-3 py-1">
-              <span className="text-blue-600 text-sm font-medium">Interactive Canvas</span>
-            </div>
-          </div>
+        <div className="lg:col-span-2">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-96 bg-gray-900 rounded-lg border-2 border-blue-400/30"
+            style={{ minHeight: '400px' }}
+          />
         </div>
 
         {/* Controls */}
-        <div className="bg-gray-100 rounded-lg p-6 space-y-6 border-2 border-gray-300 shadow-lg">
+        <div className="space-y-6">
           <div>
-            <label className="block text-gray-800 font-semibold mb-2">
+            <label className="block text-white font-semibold mb-2">
               Angle of Incidence: {incidentAngle}°
             </label>
             <Slider
@@ -399,13 +275,11 @@ export const ReflectionSimulator: React.FC = () => {
               max={80}
               value={incidentAngle}
               onChange={setIncidentAngle}
-              unit="°"
-              precision={0}
             />
           </div>
 
           <div>
-            <label className="block text-gray-800 font-semibold mb-2">Mirror Type</label>
+            <label className="block text-white font-semibold mb-2">Mirror Type</label>
             <select
               value={mirrorType}
               onChange={(e) => setMirrorType(e.target.value as any)}
@@ -418,7 +292,7 @@ export const ReflectionSimulator: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-gray-800 font-semibold mb-2">Surface Type</label>
+            <label className="block text-white font-semibold mb-2">Surface Type</label>
             <Toggle
               checked={surfaceType === 'smooth'}
               onChange={(checked) => setSurfaceType(checked ? 'smooth' : 'rough')}
@@ -426,43 +300,10 @@ export const ReflectionSimulator: React.FC = () => {
             />
           </div>
 
-          <div>
-            <label className="block text-gray-800 font-semibold mb-2">Display Options</label>
-            <div className="space-y-2">
-              <Toggle
-                checked={showMultipleRays}
-                onChange={setShowMultipleRays}
-                label="Multiple Rays"
-              />
-              <Toggle
-                checked={showNormal}
-                onChange={setShowNormal}
-                label="Show Normal"
-              />
-              <Toggle
-                checked={showAngles}
-                onChange={setShowAngles}
-                label="Show Angles"
-              />
-              {mirrorType !== 'plane' && (
-                <Toggle
-                  checked={showImage}
-                  onChange={setShowImage}
-                  label="Show Image Formation"
-                />
-              )}
-              <Toggle
-                checked={enableAnimations}
-                onChange={setEnableAnimations}
-                label="Enable Animations"
-              />
-            </div>
-          </div>
-
           {mirrorType !== 'plane' && (
             <>
               <div>
-                <label className="block text-gray-800 font-semibold mb-2">
+                <label className="block text-white font-semibold mb-2">
                   Object Distance: {objectDistance} cm
                 </label>
                 <Slider
@@ -470,27 +311,11 @@ export const ReflectionSimulator: React.FC = () => {
                   max={80}
                   value={objectDistance}
                   onChange={setObjectDistance}
-                  unit="cm"
-                  precision={0}
                 />
               </div>
 
               <div>
-                <label className="block text-gray-800 font-semibold mb-2">
-                  Object Height: {objectHeight} cm
-                </label>
-                <Slider
-                  min={2}
-                  max={20}
-                  value={objectHeight}
-                  onChange={setObjectHeight}
-                  unit="cm"
-                  precision={0}
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-800 font-semibold mb-2">
+                <label className="block text-white font-semibold mb-2">
                   Focal Length: {focalLength} cm
                 </label>
                 <Slider
@@ -498,8 +323,6 @@ export const ReflectionSimulator: React.FC = () => {
                   max={40}
                   value={focalLength}
                   onChange={setFocalLength}
-                  unit="cm"
-                  precision={0}
                 />
               </div>
             </>
@@ -514,36 +337,12 @@ export const ReflectionSimulator: React.FC = () => {
               mirrorType !== 'plane' ? `1/f = 1/u + 1/v` : ''
             ].filter(Boolean)}
           />
-
-
-          <InfoPanel
-            title={getPhysicsExplanation('reflection')?.title || "Reflection Physics"}
-            content={getPhysicsExplanation('reflection') || {
-              definition: "Reflection is the change in direction of a wave at a boundary between two different media so that the wave returns into the medium from which it originated.",
-              formula: "Law of Reflection: θᵢ = θᵣ (angle of incidence = angle of reflection)",
-              explanation: "When light strikes a surface, it bounces back according to the law of reflection. The incident ray, reflected ray, and normal all lie in the same plane. For smooth surfaces (specular reflection), light reflects in a single direction. For rough surfaces (diffuse reflection), light scatters in multiple directions.",
-              applications: [
-                "Mirrors in telescopes and microscopes",
-                "Periscopes in submarines",
-                "Solar concentrators for energy",
-                "Automotive mirrors and headlights",
-                "Optical instruments and cameras"
-              ],
-              examples: [
-                "Looking at yourself in a bathroom mirror",
-                "Sunlight reflecting off a lake",
-                "Laser beam bouncing off a mirror",
-                "Light reflecting inside a kaleidoscope",
-                "Reflection in curved mirrors (concave/convex)"
-              ]
-            }}
-          />
         </div>
       </div>
 
       {incidentAngle === reflectedAngle && (
-        <div className="mt-6 p-4 bg-green-100 border border-green-400 rounded-lg">
-          <p className="text-green-800 font-semibold flex items-center gap-2">
+        <div className="mt-4 p-4 bg-green-500/20 border border-green-400 rounded-lg">
+          <p className="text-green-200 font-semibold">
             🎉 Perfect! The incident and reflected rays follow the law of reflection!
           </p>
         </div>
