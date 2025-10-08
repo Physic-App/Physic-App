@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Slider } from './ui/Slider';
 import { Toggle } from './ui/Toggle';
 import { FormulaPanel } from './ui/FormulaPanel';
-import { InfoPanel } from './ui/InfoPanel';
 
 export const ReflectionSimulator: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -10,248 +9,341 @@ export const ReflectionSimulator: React.FC = () => {
   const [mirrorType, setMirrorType] = useState<'plane' | 'concave' | 'convex'>('plane');
   const [surfaceType, setSurfaceType] = useState<'smooth' | 'rough'>('smooth');
   const [objectDistance, setObjectDistance] = useState(30);
-  const [objectHeight, setObjectHeight] = useState(10);
   const [focalLength, setFocalLength] = useState(20);
-  const [showMultipleRays, setShowMultipleRays] = useState(false);
-  const [showNormal, setShowNormal] = useState(true);
-  const [showAngles, setShowAngles] = useState(true);
-  const [showImage, setShowImage] = useState(true);
-  const [enableAnimations, setEnableAnimations] = useState(true);
 
   const reflectedAngle = incidentAngle; // Law of reflection
 
   useEffect(() => {
-    if (enableAnimations) {
-      const timeoutId = setTimeout(() => {
-        drawReflection();
-      }, 50);
-      return () => clearTimeout(timeoutId);
-    } else {
-      drawReflection();
-    }
-  }, [incidentAngle, mirrorType, surfaceType, objectDistance, objectHeight, focalLength, showMultipleRays, showNormal, showAngles, showImage, enableAnimations]);
+    drawReflection();
+  }, [incidentAngle, mirrorType, surfaceType, objectDistance, focalLength]);
 
   const drawReflection = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
+    
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    // Set canvas size
+    canvas.width = canvas.offsetWidth;
+    canvas.height = canvas.offsetHeight;
+
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const mirrorLength = 200;
 
     // Draw mirror based on type
-    drawMirror(ctx, centerX, centerY, mirrorType);
-
-    // Draw incident ray
-    const incidentRayEnd = {
-      x: centerX - Math.cos(incidentAngle * Math.PI / 180) * 100,
-      y: centerY - Math.sin(incidentAngle * Math.PI / 180) * 100
-    };
-
-    ctx.strokeStyle = '#ff6b6b';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(incidentRayEnd.x, incidentRayEnd.y);
-    ctx.lineTo(centerX, centerY);
-    ctx.stroke();
-
-    // Draw reflected ray
-    const reflectedRayEnd = {
-      x: centerX + Math.cos(reflectedAngle * Math.PI / 180) * 100,
-      y: centerY - Math.sin(reflectedAngle * Math.PI / 180) * 100
-    };
-
-    ctx.strokeStyle = '#4ecdc4';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.lineTo(reflectedRayEnd.x, reflectedRayEnd.y);
-    ctx.stroke();
+    drawMirror(ctx, centerX, centerY, mirrorLength, mirrorType);
+    
+    // Draw incident and reflected rays
+    if (surfaceType === 'smooth') {
+      drawRays(ctx, centerX, centerY, incidentAngle, reflectedAngle);
+    } else {
+      drawScatteredRays(ctx, centerX, centerY, incidentAngle);
+    }
 
     // Draw normal line
-    if (showNormal) {
-      ctx.strokeStyle = '#666';
-      ctx.lineWidth = 2;
-      ctx.setLineDash([5, 5]);
-      ctx.beginPath();
-      ctx.moveTo(centerX, centerY - 80);
-      ctx.lineTo(centerX, centerY + 80);
-      ctx.stroke();
-      ctx.setLineDash([]);
-    }
+    drawNormal(ctx, centerX, centerY);
+    
+    // Draw angle measurements
+    drawAngles(ctx, centerX, centerY, incidentAngle, reflectedAngle);
 
-    // Draw angles
-    if (showAngles) {
-      drawAngle(ctx, centerX, centerY, incidentAngle, '#ff6b6b');
-      drawAngle(ctx, centerX, centerY, -reflectedAngle, '#4ecdc4');
+    // Draw image formation for spherical mirrors
+    if (mirrorType !== 'plane') {
+      drawImageFormation(ctx, centerX, centerY, objectDistance, focalLength, mirrorType);
     }
   };
 
-  const drawMirror = (ctx: CanvasRenderingContext2D, x: number, y: number, type: string) => {
-    ctx.strokeStyle = '#333';
+  const drawMirror = (ctx: CanvasRenderingContext2D, x: number, y: number, length: number, type: string) => {
+    ctx.strokeStyle = '#4F46E5';
     ctx.lineWidth = 4;
-    ctx.beginPath();
-
+    
     if (type === 'plane') {
-      ctx.moveTo(x - 100, y);
-      ctx.lineTo(x + 100, y);
+      ctx.beginPath();
+      ctx.moveTo(x, y - length/2);
+      ctx.lineTo(x, y + length/2);
+      ctx.stroke();
     } else if (type === 'concave') {
-      ctx.arc(x, y - 50, 150, Math.PI * 0.2, Math.PI * 0.8);
+      ctx.beginPath();
+      ctx.arc(x + 50, y, length/2, Math.PI/2, 3*Math.PI/2);
+      ctx.stroke();
     } else if (type === 'convex') {
-      ctx.arc(x, y + 50, 150, Math.PI * 1.2, Math.PI * 1.8);
+      ctx.beginPath();
+      ctx.arc(x - 50, y, length/2, -Math.PI/2, Math.PI/2);
+      ctx.stroke();
     }
-
-    ctx.stroke();
   };
 
-  const drawAngle = (ctx: CanvasRenderingContext2D, x: number, y: number, angle: number, color: string) => {
-    ctx.strokeStyle = color;
+  const drawRays = (ctx: CanvasRenderingContext2D, x: number, y: number, incident: number, reflected: number) => {
+    const rayLength = 120;
+    
+    // Incident ray
+    ctx.strokeStyle = '#EF4444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const incidentX = x - rayLength * Math.sin(incident * Math.PI / 180);
+    const incidentY = y - rayLength * Math.cos(incident * Math.PI / 180);
+    ctx.moveTo(incidentX, incidentY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    // Add arrow
+    drawArrow(ctx, incidentX, incidentY, x, y, '#EF4444');
+    
+    // Reflected ray
+    ctx.strokeStyle = '#10B981';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const reflectedX = x + rayLength * Math.sin(reflected * Math.PI / 180);
+    const reflectedY = y - rayLength * Math.cos(reflected * Math.PI / 180);
+    ctx.moveTo(x, y);
+    ctx.lineTo(reflectedX, reflectedY);
+    ctx.stroke();
+    
+    // Add arrow
+    drawArrow(ctx, x, y, reflectedX, reflectedY, '#10B981');
+  };
+
+  const drawScatteredRays = (ctx: CanvasRenderingContext2D, x: number, y: number, incident: number) => {
+    const rayLength = 120;
+    
+    // Incident ray
+    ctx.strokeStyle = '#EF4444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const incidentX = x - rayLength * Math.sin(incident * Math.PI / 180);
+    const incidentY = y - rayLength * Math.cos(incident * Math.PI / 180);
+    ctx.moveTo(incidentX, incidentY);
+    ctx.lineTo(x, y);
+    ctx.stroke();
+    
+    // Multiple scattered rays
+    ctx.strokeStyle = '#10B981';
     ctx.lineWidth = 2;
-    const radius = 30;
-    const startAngle = -Math.PI / 2;
-    const endAngle = startAngle + (angle * Math.PI / 180);
+    for (let i = 0; i < 5; i++) {
+      const scatterAngle = incident + (Math.random() - 0.5) * 60;
+      ctx.beginPath();
+      const scatteredX = x + (rayLength * 0.6) * Math.sin(scatterAngle * Math.PI / 180);
+      const scatteredY = y - (rayLength * 0.6) * Math.cos(scatterAngle * Math.PI / 180);
+      ctx.moveTo(x, y);
+      ctx.lineTo(scatteredX, scatteredY);
+      ctx.stroke();
+    }
+  };
+
+  const drawNormal = (ctx: CanvasRenderingContext2D, x: number, y: number) => {
+    ctx.strokeStyle = '#64748B';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(x, y - 100);
+    ctx.lineTo(x, y + 100);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    
+    // Label
+    ctx.fillStyle = '#64748B';
+    ctx.font = '14px sans-serif';
+    ctx.fillText('Normal', x + 10, y - 80);
+  };
+
+  const drawAngles = (ctx: CanvasRenderingContext2D, x: number, y: number, incident: number, reflected: number) => {
+    const radius = 40;
+    
+    // Incident angle arc
+    ctx.strokeStyle = '#EF4444';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, radius, -Math.PI/2, (-Math.PI/2 - incident * Math.PI / 180), true);
+    ctx.stroke();
+    
+    // Reflected angle arc
+    ctx.strokeStyle = '#10B981';
+    ctx.beginPath();
+    ctx.arc(x, y, radius, -Math.PI/2, (-Math.PI/2 + reflected * Math.PI / 180));
+    ctx.stroke();
+    
+    // Angle labels
+    ctx.fillStyle = '#EF4444';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(`i = ${incident}°`, x - 80, y - 50);
+    
+    ctx.fillStyle = '#10B981';
+    ctx.fillText(`r = ${reflected}°`, x + 50, y - 50);
+  };
+
+  const drawArrow = (ctx: CanvasRenderingContext2D, fromX: number, fromY: number, toX: number, toY: number, color: string) => {
+    const angle = Math.atan2(toY - fromY, toX - fromX);
+    const arrowLength = 15;
+    
+    ctx.strokeStyle = color;
+    ctx.fillStyle = color;
+    ctx.lineWidth = 2;
     
     ctx.beginPath();
-    ctx.arc(x, y, radius, startAngle, endAngle);
+    ctx.moveTo(toX - arrowLength * Math.cos(angle - Math.PI/6), toY - arrowLength * Math.sin(angle - Math.PI/6));
+    ctx.lineTo(toX, toY);
+    ctx.lineTo(toX - arrowLength * Math.cos(angle + Math.PI/6), toY - arrowLength * Math.sin(angle + Math.PI/6));
     ctx.stroke();
-
-    // Angle label
-    ctx.fillStyle = color;
-    ctx.font = '14px Arial';
-    ctx.fillText(`${Math.abs(angle)}°`, x + 35, y - 10);
   };
 
+  const drawImageFormation = (ctx: CanvasRenderingContext2D, x: number, y: number, objDist: number, focal: number, type: string) => {
+    // Object
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    const objX = x - objDist * 2;
+    ctx.moveTo(objX, y);
+    ctx.lineTo(objX, y - 40);
+    ctx.stroke();
+    
+    // Object arrow
+    ctx.fillStyle = '#F59E0B';
+    ctx.beginPath();
+    ctx.moveTo(objX - 5, y - 35);
+    ctx.lineTo(objX, y - 40);
+    ctx.lineTo(objX + 5, y - 35);
+    ctx.fill();
+    
+    // Calculate image position
+    let imageDistance;
+    if (type === 'concave') {
+      imageDistance = (focal * objDist) / (objDist - focal);
+    } else {
+      imageDistance = (focal * objDist) / (objDist + focal);
+    }
+    
+    if (imageDistance > 0 && imageDistance < 500) {
+      // Real image
+      ctx.strokeStyle = '#8B5CF6';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      const imgX = x + Math.abs(imageDistance) * 2;
+      const magnification = -imageDistance / objDist;
+      ctx.moveTo(imgX, y);
+      ctx.lineTo(imgX, y + 40 * magnification);
+      ctx.stroke();
+    }
+    
+    // Focal points
+    ctx.fillStyle = '#F97316';
+    ctx.beginPath();
+    ctx.arc(x + focal * 2, y, 4, 0, 2 * Math.PI);
+    ctx.fill();
+    
+    ctx.fillStyle = '#F97316';
+    ctx.font = '12px sans-serif';
+    ctx.fillText('F', x + focal * 2, y + 20);
+  };
+
+  const magnification = mirrorType !== 'plane' ? (-objectDistance + focalLength) / objectDistance : 1;
+
   return (
-    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
-      <div className="flex-1 p-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mb-6">
-            Reflection Simulator
-          </h2>
-          
-          <div className="flex gap-6">
-            <div className="flex-1">
-              <canvas
-                ref={canvasRef}
-                width={600}
-                height={400}
-                className="border border-gray-300 dark:border-gray-600 rounded-lg bg-white"
-              />
-            </div>
-            
-            <div className="w-80 space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Controls
-                </h3>
-                
+    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6">
+      <h2 className="text-2xl font-bold text-white mb-6">Reflection of Light</h2>
+      
+      <div className="mb-6 p-4 bg-blue-500/20 border border-blue-400 rounded-lg">
+        <p className="text-blue-100 text-sm">
+          <strong>Reflection:</strong> When light rays strike a surface and bounce back into the same medium. 
+          The angle of incidence equals the angle of reflection (i = r), and both rays lie in the same plane as the normal.
+        </p>
+      </div>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Canvas */}
+        <div className="lg:col-span-2">
+          <canvas
+            ref={canvasRef}
+            className="w-full h-96 bg-gray-900 rounded-lg border-2 border-blue-400/30"
+            style={{ minHeight: '400px' }}
+          />
+        </div>
+
+        {/* Controls */}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-white font-semibold mb-2">
+              Angle of Incidence: {incidentAngle}°
+            </label>
+            <Slider
+              min={0}
+              max={80}
+              value={incidentAngle}
+              onChange={setIncidentAngle}
+            />
+          </div>
+
+          <div>
+            <label className="block text-white font-semibold mb-2">Mirror Type</label>
+            <select
+              value={mirrorType}
+              onChange={(e) => setMirrorType(e.target.value as any)}
+              className="w-full px-3 py-2 bg-gray-800 text-white rounded-md border border-gray-600"
+            >
+              <option value="plane">Plane Mirror</option>
+              <option value="concave">Concave Mirror</option>
+              <option value="convex">Convex Mirror</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-white font-semibold mb-2">Surface Type</label>
+            <Toggle
+              checked={surfaceType === 'smooth'}
+              onChange={(checked) => setSurfaceType(checked ? 'smooth' : 'rough')}
+              label={surfaceType === 'smooth' ? 'Smooth Surface' : 'Rough Surface'}
+            />
+          </div>
+
+          {mirrorType !== 'plane' && (
+            <>
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  Object Distance: {objectDistance} cm
+                </label>
                 <Slider
-                  label="Incident Angle"
-                  value={incidentAngle}
-                  onChange={setIncidentAngle}
-                  min={0}
-                  max={90}
-                  unit="°"
-                />
-                
-                <Slider
-                  label="Object Distance"
+                  min={10}
+                  max={80}
                   value={objectDistance}
                   onChange={setObjectDistance}
-                  min={10}
-                  max={100}
-                  unit="cm"
                 />
-                
+              </div>
+
+              <div>
+                <label className="block text-white font-semibold mb-2">
+                  Focal Length: {focalLength} cm
+                </label>
                 <Slider
-                  label="Object Height"
-                  value={objectHeight}
-                  onChange={setObjectHeight}
-                  min={1}
-                  max={20}
-                  unit="cm"
-                />
-                
-                <Slider
-                  label="Focal Length"
+                  min={5}
+                  max={40}
                   value={focalLength}
                   onChange={setFocalLength}
-                  min={5}
-                  max={50}
-                  unit="cm"
                 />
               </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Display Options
-                </h3>
-                
-                <Toggle
-                  label="Show Normal"
-                  checked={showNormal}
-                  onChange={setShowNormal}
-                />
-                
-                <Toggle
-                  label="Show Angles"
-                  checked={showAngles}
-                  onChange={setShowAngles}
-                />
-                
-                <Toggle
-                  label="Show Image"
-                  checked={showImage}
-                  onChange={setShowImage}
-                />
-                
-                <Toggle
-                  label="Enable Animations"
-                  checked={enableAnimations}
-                  onChange={setEnableAnimations}
-                />
-              </div>
-              
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Mirror Type
-                </h3>
-                
-                <div className="space-y-2">
-                  {['plane', 'concave', 'convex'].map((type) => (
-                    <label key={type} className="flex items-center">
-                      <input
-                        type="radio"
-                        name="mirrorType"
-                        value={type}
-                        checked={mirrorType === type}
-                        onChange={(e) => setMirrorType(e.target.value as any)}
-                        className="mr-2"
-                      />
-                      <span className="text-gray-700 dark:text-gray-300 capitalize">
-                        {type} Mirror
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-          
+            </>
+          )}
+
           <FormulaPanel
+            title="Laws of Reflection"
             formulas={[
-              { name: "Law of Reflection", formula: "θᵢ = θᵣ" },
-              { name: "Mirror Equation", formula: "1/f = 1/v + 1/u" },
-              { name: "Magnification", formula: "m = -v/u" }
-            ]}
+              `Angle of Incidence = ${incidentAngle}°`,
+              `Angle of Reflection = ${reflectedAngle}°`,
+              mirrorType !== 'plane' ? `Magnification = ${magnification.toFixed(2)}` : '',
+              mirrorType !== 'plane' ? `1/f = 1/u + 1/v` : ''
+            ].filter(Boolean)}
           />
         </div>
       </div>
+
+      {incidentAngle === reflectedAngle && (
+        <div className="mt-4 p-4 bg-green-500/20 border border-green-400 rounded-lg">
+          <p className="text-green-200 font-semibold">
+            🎉 Perfect! The incident and reflected rays follow the law of reflection!
+          </p>
+        </div>
+      )}
     </div>
   );
 };
