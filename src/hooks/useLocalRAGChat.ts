@@ -102,11 +102,34 @@ function generateContextualResponse(question: string, chapterTitle: string): str
       'velocity': 'Velocity is the rate of change of displacement with respect to time. It is a vector quantity with both magnitude and direction.',
       'acceleration': 'Acceleration is the rate of change of velocity with respect to time. It can be positive (speeding up) or negative (slowing down).'
     },
-    // Force
-    'force': {
+    // Force and Pressure
+    'force and pressure': {
       'what is force': 'Force is a push or pull that can change the state of motion of an object. It is measured in Newtons (N).',
+      'what is pressure': 'Pressure is the force applied per unit area. It is measured in Pascals (Pa) and calculated as P = F/A.',
       'newton laws': 'Newton\'s laws of motion describe the relationship between forces and motion: 1) Objects at rest stay at rest, 2) F=ma, 3) Action and reaction are equal and opposite.',
       'friction': 'Friction is a force that opposes the relative motion between two surfaces in contact. It depends on the nature of surfaces and normal force.'
+    },
+    // Friction
+    'friction': {
+      'what is friction': 'Friction is a force that opposes the relative motion between two surfaces in contact. It acts parallel to the surface and depends on the nature of the surfaces and the normal force.',
+      'types of friction': 'There are three types of friction: 1) Static friction (prevents motion), 2) Kinetic friction (opposes motion), and 3) Rolling friction (opposes rolling motion).',
+      'factors affecting friction': 'Friction depends on: 1) Nature of surfaces in contact, 2) Normal force between surfaces, 3) Surface roughness, and 4) Temperature.',
+      'applications of friction': 'Friction is essential for walking, driving, writing, and many other daily activities. It also causes wear and generates heat.'
+    },
+    // Force and Laws of Motion
+    'force and laws of motion': {
+      'what is force': 'Force is a push or pull that can change the state of motion of an object. It is measured in Newtons (N).',
+      'newton first law': 'Newton\'s First Law (Law of Inertia): An object at rest stays at rest, and an object in motion stays in motion, unless acted upon by an external force.',
+      'newton second law': 'Newton\'s Second Law: F = ma, where F is force, m is mass, and a is acceleration. Force equals mass times acceleration.',
+      'newton third law': 'Newton\'s Third Law: For every action, there is an equal and opposite reaction. Forces always occur in pairs.'
+    },
+    // Electric Current and Its Effects
+    'electric current and its effects': {
+      'what is electric current': 'Electric current is the flow of electric charge through a conductor. It is measured in Amperes (A) and flows from positive to negative terminal.',
+      'what is electricity': 'Electricity is the flow of electric charge through a conductor. It can be static (stationary charges) or current (moving charges).',
+      'current effects': 'Electric current has three main effects: 1) Heating effect (produces heat), 2) Magnetic effect (creates magnetic field), and 3) Chemical effect (causes chemical reactions).',
+      'voltage': 'Voltage is the electric potential difference between two points, measured in Volts (V). It provides the "pressure" to push current through a circuit.',
+      'resistance': 'Resistance is the opposition to the flow of electric current, measured in Ohms (Ω). It depends on material, length, cross-sectional area, and temperature.'
     },
     // Electricity
     'electricity': {
@@ -126,7 +149,12 @@ function generateContextualResponse(question: string, chapterTitle: string): str
 
   // Find the best matching response
   const chapterKey = chapterTitle.toLowerCase();
-  const chapterResponses = responses[chapterKey] || responses['motion']; // fallback to motion
+  const chapterResponses = responses[chapterKey];
+  
+  // If no specific chapter responses found, return a helpful message
+  if (!chapterResponses) {
+    return `**From ${chapterTitle} textbook:**\n\nI can help you with questions about ${chapterTitle}. Please ask specific questions about this topic, and I'll provide detailed explanations from the textbook.`;
+  }
 
   // Check for exact matches first
   for (const [key, response] of Object.entries(chapterResponses)) {
@@ -145,6 +173,7 @@ function generateContextualResponse(question: string, chapterTitle: string): str
     return `**From ${chapterTitle} textbook:**\n\n${chapterResponses[matchedKeyword]}`;
   }
 
-  // Default response
+  // Default response for the specific chapter
+  const keywords = Object.keys(chapterResponses);
   return `**From ${chapterTitle} textbook:**\n\nI can help you understand concepts related to ${chapterTitle}. Please ask specific questions about topics like ${keywords.slice(0, 3).join(', ')} or other ${chapterTitle} concepts.`;
 }
