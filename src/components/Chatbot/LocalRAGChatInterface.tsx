@@ -1,9 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-<<<<<<< HEAD
-import { Send, Bookmark, Plus, Database, Upload } from 'lucide-react';
-=======
 import { Send, Bookmark, Plus, Database } from 'lucide-react';
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 import { Message, Chapter, ChatSession } from '../../types/chatbot';
 import { mockChatSessions } from '../../data/mockData';
 import { ChapterSelector } from './ChapterSelector';
@@ -13,12 +9,6 @@ import { TypingIndicator } from './TypingIndicator';
 import { BookmarkSidebar } from './BookmarkSidebar';
 import ThemeToggle from '../Navigation/ThemeToggle';
 import { useLocalRAGChat } from '../../hooks/useLocalRAGChat';
-<<<<<<< HEAD
-import { localStorageRAG } from '../../services/localStorageRAG';
-import { runAllChapterIsolationTests } from '../../utils/chatbotTests';
-=======
-import { autoPDFLoader } from '../../services/autoPDFLoader';
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
 export const LocalRAGChatInterface: React.FC = () => {
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
@@ -28,15 +18,6 @@ export const LocalRAGChatInterface: React.FC = () => {
   const [showBookmarks, setShowBookmarks] = useState(false);
   const [chatSessions, setChatSessions] = useState<ChatSession[]>(mockChatSessions);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
-<<<<<<< HEAD
-  const [showDataManager, setShowDataManager] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  // Use real Local RAG Chat functionality
-  const { isLoading, error, hasChapterData, sendMessage, loadSampleData, uploadPDFs, getStorageInfo } = useLocalRAGChat();
-=======
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -46,7 +27,6 @@ export const LocalRAGChatInterface: React.FC = () => {
     chapterTitle: selectedChapter?.title || '',
     useLocalStorage: true,
   });
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
   // Auto-scroll to latest message
   const scrollToBottom = () => {
@@ -57,14 +37,6 @@ export const LocalRAGChatInterface: React.FC = () => {
     scrollToBottom();
   }, [messages, isTyping]);
 
-<<<<<<< HEAD
-=======
-  // Auto-load PDFs on component mount
-  useEffect(() => {
-    autoPDFLoader.loadAllPDFs().catch(console.error);
-  }, []);
-
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
   // Focus input when chapter changes
   useEffect(() => {
     if (selectedChapter) {
@@ -77,208 +49,64 @@ export const LocalRAGChatInterface: React.FC = () => {
     return words.join(' ') + (firstMessage.split(' ').length > 4 ? '...' : '');
   };
 
-<<<<<<< HEAD
-  const handleChapterSelect = async (chapter: Chapter) => {
-=======
   const handleChapterSelect = (chapter: Chapter) => {
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     setSelectedChapter(chapter);
     setMessages([]);
     setSelectedSessionId(null);
-    
-<<<<<<< HEAD
-    // Check if chapter data exists
-    const chapterData = await localStorageRAG.getChapterData(chapter.id);
-    let chapterHasData = !!chapterData;
-    
-    // If no data exists, try to load sample data automatically
-    if (!chapterHasData) {
-      try {
-        await loadSampleData();
-        // Check again after loading sample data
-        const newChapterData = await localStorageRAG.getChapterData(chapter.id);
-        chapterHasData = !!newChapterData;
-      } catch (error) {
-        console.error('Failed to load sample data:', error);
-      }
-    }
-    
-    // Welcome message for new chapter
-    const welcomeMessage: Message = {
-      id: Date.now().toString(),
-      content: `Hello! 👋 I'm your physics assistant for **${chapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
-=======
-    // Welcome message for new chapter
-    const welcomeMessage: Message = {
-      id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${chapter.title}**. 
-
-✅ *I have your textbook content loaded and ready to answer questions!*
-
-Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
-      isBot: true,
-      timestamp: new Date(),
-    };
-    
-    setMessages([welcomeMessage]);
   };
 
-  const handleSessionSelect = (session: ChatSession) => {
-    setSelectedSessionId(session.id);
-    setMessages(session.messages);
-    // Find and set the chapter for this session
-    const chapter = { id: session.chapterId, title: '', description: '' };
-    setSelectedChapter(chapter);
-  };
-
-  const handleSessionDelete = (sessionId: string) => {
-    setChatSessions(prev => prev.filter(session => session.id !== sessionId));
-    if (selectedSessionId === sessionId) {
-      setSelectedSessionId(null);
-      setMessages([]);
-    }
-  };
-
-<<<<<<< HEAD
-  const handleNewChat = async () => {
-=======
   const handleNewChat = () => {
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     if (!selectedChapter) return;
     
-    setSelectedSessionId(null);
     setMessages([]);
-    
-<<<<<<< HEAD
-    // Check if chapter data exists
-    const chapterData = await localStorageRAG.getChapterData(selectedChapter.id);
-    const chapterHasData = !!chapterData;
-    
-    // Welcome message for new chat
-    const welcomeMessage: Message = {
-      id: Date.now().toString(),
-      content: `Hello! 👋 I'm your physics assistant for **${selectedChapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?
-
-${chapterHasData 
-  ? '✅ *I have your textbook content loaded and ready to answer questions!*' 
-  : '⚠️ *No content loaded for this chapter yet. Upload PDFs or load sample data to get started.*'
-}`,
-=======
-    // Welcome message for new chat
-    const welcomeMessage: Message = {
-      id: Date.now().toString(),
-      content: `Hello! I'm here to help you with **${selectedChapter.title}**.
-
-✅ *I have your textbook content loaded and ready to answer questions!*
-
-Ask me anything about this chapter - from basic concepts to complex numerical problems.`,
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
-      isBot: true,
-      timestamp: new Date(),
-    };
-    
-    setMessages([welcomeMessage]);
+    setSelectedSessionId(null);
   };
 
   const handleSendMessage = async () => {
     if (!inputValue.trim() || !selectedChapter || isLoading) return;
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      content: inputValue.trim(),
-      isBot: false,
-      timestamp: new Date(),
-    };
-
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
     const currentInput = inputValue.trim();
     setInputValue('');
     setIsTyping(true);
 
-    // Save or update chat session
-    if (!selectedSessionId && newMessages.length > 1) {
-      // Create new session
-      const newSession: ChatSession = {
-        id: Date.now().toString(),
-        title: generateChatTitle(currentInput),
-        chapterId: selectedChapter.id,
-        messages: newMessages,
-        createdAt: new Date(),
-        lastActivity: new Date(),
-      };
-      setChatSessions(prev => [newSession, ...prev]);
-      setSelectedSessionId(newSession.id);
-    } else if (selectedSessionId) {
-      // Update existing session
-      setChatSessions(prev =>
-        prev.map(session =>
-          session.id === selectedSessionId
-            ? { ...session, messages: newMessages, lastActivity: new Date() }
-            : session
-        )
-      );
-    }
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      content: currentInput,
+      isBot: false,
+      timestamp: new Date(),
+      isBookmarked: false,
+    };
+
+    setMessages(prev => [...prev, userMessage]);
 
     try {
-      // Send message to local RAG system
       const result = await sendMessage(
         currentInput,
-<<<<<<< HEAD
         selectedChapter.id,
         selectedChapter.title
-=======
-        newMessages,
-        selectedSessionId || undefined
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       );
 
-      const botResponse: Message = {
+      // Add bot response
+      const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-<<<<<<< HEAD
         content: result.content,
         isBot: true,
         timestamp: new Date(),
         isBookmarked: false,
-=======
-        content: result.response,
-        isBot: true,
-        timestamp: new Date(),
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       };
 
-      const updatedMessages = [...newMessages, botResponse];
-      setMessages(updatedMessages);
-
-      // Update session with bot response
-      if (selectedSessionId) {
-        setChatSessions(prev =>
-          prev.map(session =>
-            session.id === selectedSessionId
-              ? { ...session, messages: updatedMessages, lastActivity: new Date() }
-              : session
-          )
-        );
-      }
-
+      setMessages(prev => [...prev, botMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      
-      // Fallback response on error
-      const errorResponse: Message = {
+      const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
-        content: "I'm sorry, I encountered an error processing your question. Please try again or rephrase your question.",
+        content: 'Sorry, I encountered an error. Please try again.',
         isBot: true,
         timestamp: new Date(),
-<<<<<<< HEAD
         isBookmarked: false,
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       };
-
-      const updatedMessages = [...newMessages, errorResponse];
-      setMessages(updatedMessages);
+      setMessages(prev => [...prev, errorMessage]);
     } finally {
       setIsTyping(false);
     }
@@ -291,344 +119,172 @@ Ask me anything about this chapter - from basic concepts to complex numerical pr
     }
   };
 
-  const handleBookmark = (messageId: string) => {
-    setMessages(prev =>
-      prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, isBookmarked: !msg.isBookmarked }
-          : msg
-      )
-    );
-  };
-
-<<<<<<< HEAD
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (!files || files.length === 0) return;
-
-    console.log(`📁 Processing ${files.length} PDF files...`);
-    
-    try {
-      await uploadPDFs(Array.from(files));
-      
-      // Refresh chapter data status
-      if (selectedChapter) {
-        await handleChapterSelect(selectedChapter);
-      }
-      
-      alert(`Successfully processed ${files.length} PDF file(s)!`);
-    } catch (error) {
-      console.error('Error processing files:', error);
-      alert('Error processing PDF files. Please try again.');
-    }
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const handleSessionSelect = (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (session) {
+      setMessages(session.messages);
+      setSelectedSessionId(sessionId);
     }
   };
 
-  const handleLoadSampleData = async () => {
-    try {
-      await loadSampleData();
-      
-      // Refresh chapter data status
-      if (selectedChapter) {
-        await handleChapterSelect(selectedChapter);
-      }
-      
-      alert('Sample physics data loaded for all chapters!');
-    } catch (error) {
-      console.error('Error loading sample data:', error);
-      alert('Error loading sample data. Please try again.');
-    }
+  const handleBookmarkToggle = (messageId: string) => {
+    setMessages(prev => prev.map(msg => 
+      msg.id === messageId 
+        ? { ...msg, isBookmarked: !msg.isBookmarked }
+        : msg
+    ));
   };
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
   const bookmarkedMessages = messages.filter(msg => msg.isBookmarked);
 
-  const handleRemoveBookmark = (messageId: string) => {
-    handleBookmark(messageId);
-  };
-
-<<<<<<< HEAD
-  const [storageInfo, setStorageInfo] = useState({ totalChapters: 0, totalSize: 0, chapters: [] });
-
-  // Load storage info on component mount
-  useEffect(() => {
-    const loadStorageInfo = async () => {
-      const info = await getStorageInfo();
-      setStorageInfo(info);
-    };
-    loadStorageInfo();
-  }, [getStorageInfo]);
-
   return (
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
-=======
-
-  return (
-    <div className="flex h-full bg-gray-50 dark:bg-gray-900">
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
-      
+    <div className="flex h-full bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
       {/* Left Sidebar */}
       <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
+        {/* Header */}
         <div className="p-4 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-2">
-              <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                Physics AI
-              </h1>
-              <Database size={16} className="text-blue-500" />
-            </div>
+            <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              Physics Chat
+            </h2>
             <ThemeToggle />
           </div>
           
-<<<<<<< HEAD
-          {/* Data Management */}
-          <div className="mb-3 space-y-2">
-            <button
-              onClick={() => setShowDataManager(!showDataManager)}
-              className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200"
-            >
-              <Database size={16} />
-              <span>Manage Data</span>
-            </button>
-            
-            {showDataManager && (
-              <div className="space-y-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full flex items-center justify-center space-x-2 px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
-                >
-                  <Upload size={14} />
-                  <span>Upload PDFs</span>
-                </button>
-                
-                <button
-                  onClick={handleLoadSampleData}
-                  className="w-full flex items-center justify-center space-x-2 px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
-                >
-                  <Database size={14} />
-                  <span>Load Sample Data</span>
-                </button>
-                
-                <button
-                  onClick={async () => {
-                    if (!selectedChapter) {
-                      alert('Please select a chapter first');
-                      return;
-                    }
-                    
-                    try {
-                      const { sendMessage } = useLocalRAGChat();
-                      // Create a wrapper function for testing
-                      const testWrapper = async (message: string, chapterId: string) => {
-                        const response = await sendMessage(message, chapterId, 'Test Chapter');
-                        return response.content;
-                      };
-                      const results = await runAllChapterIsolationTests(testWrapper);
-                      
-                      const summary = `Chapter Isolation Test Results:
-Total Tests: ${results.total}
-Passed: ${results.passed}
-Failed: ${results.failed}
-Success Rate: ${((results.passed / results.total) * 100).toFixed(1)}%`;
-                      
-                      console.log('Test Results:', results);
-                      alert(summary);
-                    } catch (error) {
-                      console.error('Test failed:', error);
-                      alert('Test failed. Check console for details.');
-                    }
-                  }}
-                  className="w-full flex items-center justify-center space-x-2 px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 mt-2"
-                >
-                  <Plus size={14} />
-                  <span>Test Chapter Isolation</span>
-                </button>
-                
-                <div className="text-xs text-gray-600 dark:text-gray-300">
-                  Chapters: {storageInfo.totalChapters}/10
-                </div>
-              </div>
-            )}
-=======
-          {/* Content Status */}
-          <div className="mb-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-            <div className="flex items-center space-x-2 text-sm text-green-700 dark:text-green-300">
-              <Database size={14} />
-              <span>All Physics Content Ready</span>
-            </div>
-            <div className="text-xs text-green-600 dark:text-green-400 mt-1">
-              10/10 chapters loaded
-            </div>
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
-          </div>
-          
-          {/* Error Display */}
-          {error && (
-            <div className="mb-3 p-2 bg-orange-100 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded text-sm text-orange-700 dark:text-orange-300">
-              {error}
-            </div>
-          )}
-          
-          {selectedChapter && (
-            <button
-              onClick={handleNewChat}
-              className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-            >
-              <Plus size={18} />
-              <span>New Chat</span>
-            </button>
-          )}
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-4 space-y-6">
-          <ChapterSelector
+          <ChapterSelector 
             selectedChapter={selectedChapter}
             onChapterSelect={handleChapterSelect}
           />
-          
+        </div>
+
+        {/* Chat History */}
+        <div className="flex-1 overflow-hidden">
           <ChatHistory
-            chatSessions={chatSessions.filter(session => session.chapterId === selectedChapter?.id)}
+            sessions={chatSessions}
             selectedSessionId={selectedSessionId}
             onSessionSelect={handleSessionSelect}
-            onSessionDelete={handleSessionDelete}
+            onNewChat={handleNewChat}
           />
+        </div>
+
+        {/* Bookmark Toggle */}
+        <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={() => setShowBookmarks(!showBookmarks)}
+            className="flex items-center justify-center w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+          >
+            <Bookmark className="w-4 h-4 mr-2" />
+            {showBookmarks ? 'Hide' : 'Show'} Bookmarks ({bookmarkedMessages.length})
+          </button>
         </div>
       </div>
 
-<<<<<<< HEAD
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept=".pdf"
-        onChange={handleFileUpload}
-        style={{ display: 'none' }}
-      />
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
-
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
-        
-        {/* Header */}
-        <div className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {selectedChapter 
-                  ? selectedChapter.title 
-                  : 'Select a chapter to start'
-                }
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {selectedChapter 
-<<<<<<< HEAD
-                  ? `Local storage mode • ${hasChapterData ? 'Content loaded' : 'No content yet'}`
-=======
-                  ? `Local storage mode • Content ready`
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
-                  : 'Choose a physics chapter from the sidebar'
-                }
-              </p>
-            </div>
-            <button
-              onClick={() => setShowBookmarks(true)}
-              className="flex items-center space-x-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/20 
-                         text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 
-                         dark:hover:bg-blue-900/30 transition-colors duration-200"
-            >
-              <Bookmark size={18} />
-              {bookmarkedMessages.length > 0 && (
-                <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded-full">
-                  {bookmarkedMessages.length}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-
-        {/* Messages Container */}
-        <div className="flex-1 overflow-y-auto p-6">
-          {!selectedChapter ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="text-6xl mb-4">📚</div>
-                <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
-                  Welcome to Physics AI Assistant
-                </h2>
-                <p className="text-gray-500 dark:text-gray-400 max-w-md">
-                  Select a chapter from the sidebar to start asking questions. 
-                  This version stores data locally in your browser for temporary use.
-                </p>
+        {selectedChapter ? (
+          <>
+            {/* Chat Header */}
+            <div className="p-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                    {selectedChapter.title}
+                  </h1>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    Local storage mode • Content ready
+                  </p>
+                </div>
+                <button
+                  onClick={handleNewChat}
+                  className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  New Chat
+                </button>
               </div>
             </div>
-          ) : (
-            <>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-4">
               {messages.map((message) => (
                 <MessageCard
                   key={message.id}
                   message={message}
-                  onBookmark={handleBookmark}
+                  onBookmarkToggle={handleBookmarkToggle}
                 />
               ))}
               
-              {(isTyping || isLoading) && <TypingIndicator />}
+              {isTyping && <TypingIndicator />}
+              
+              {messages.length === 0 && (
+                <div className="flex items-center justify-center h-full">
+                  <div className="text-center">
+                    <Database className="w-12 h-12 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+                      Start a conversation
+                    </h3>
+                    <p className="text-gray-600 dark:text-gray-400">
+                      Ask me anything about {selectedChapter.title}!
+                    </p>
+                  </div>
+                </div>
+              )}
               
               <div ref={messagesEndRef} />
-            </>
-          )}
-        </div>
+            </div>
 
-        {/* Input Area */}
-        {selectedChapter && (
-          <div className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4">
-            <div className="flex items-end space-x-3">
-              <div className="flex-1">
-                <input
-                  ref={inputRef}
-                  type="text"
-                  value={inputValue}
-                  onChange={(e) => setInputValue(e.target.value)}
-                  onKeyPress={handleKeyPress}
-                  placeholder={`Ask anything about ${selectedChapter.title}...`}
-                  className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 
-                             rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent
-                             bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100
-                             placeholder-gray-500 dark:placeholder-gray-400"
-                  disabled={isTyping || isLoading}
-                />
+            {/* Input Area */}
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+              <div className="flex items-end space-x-3">
+                <div className="flex-1">
+                  <textarea
+                    ref={inputRef}
+                    value={inputValue}
+                    onChange={(e) => setInputValue(e.target.value)}
+                    onKeyPress={handleKeyPress}
+                    placeholder={`Ask about ${selectedChapter.title}...`}
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-colors"
+                    rows={1}
+                    disabled={isLoading}
+                  />
+                </div>
+                <button
+                  onClick={handleSendMessage}
+                  disabled={!inputValue.trim() || isLoading}
+                  className="flex items-center justify-center w-12 h-12 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  <Send className="w-5 h-5" />
+                </button>
               </div>
-              <button
-                onClick={handleSendMessage}
-                disabled={!inputValue.trim() || isTyping || isLoading}
-                className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 
-                           disabled:opacity-50 disabled:cursor-not-allowed
-                           transition-colors duration-200"
-              >
-                <Send size={20} />
-              </button>
+              
+              {error && (
+                <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400 text-sm">
+                  {error}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <div className="text-center">
+              <Database className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4" />
+              <h2 className="text-2xl font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                Select a Chapter
+              </h2>
+              <p className="text-gray-600 dark:text-gray-400">
+                Choose a physics topic to start chatting
+              </p>
             </div>
           </div>
         )}
       </div>
 
       {/* Bookmark Sidebar */}
-      <BookmarkSidebar
-        isOpen={showBookmarks}
-        onClose={() => setShowBookmarks(false)}
-        bookmarkedMessages={bookmarkedMessages}
-        onRemoveBookmark={handleRemoveBookmark}
-      />
+      {showBookmarks && (
+        <BookmarkSidebar
+          messages={bookmarkedMessages}
+          onClose={() => setShowBookmarks(false)}
+        />
+      )}
     </div>
   );
-<<<<<<< HEAD
 };
-=======
-};
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
