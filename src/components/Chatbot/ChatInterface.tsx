@@ -49,11 +49,7 @@ export const ChatInterface: React.FC = () => {
     // Welcome message for new chapter
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-<<<<<<< HEAD
       content: `Hello! 👋 I'm your physics assistant for **${chapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
-=======
-      content: `Hello! I'm here to help you with **${chapter.title}**. Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       isBot: true,
       timestamp: new Date(),
     };
@@ -86,11 +82,7 @@ export const ChatInterface: React.FC = () => {
     // Welcome message for new chat
     const welcomeMessage: Message = {
       id: Date.now().toString(),
-<<<<<<< HEAD
       content: `Hello! 👋 I'm your physics assistant for **${selectedChapter.title}**. I'm here to help you understand concepts, solve problems, and answer any questions you have about this topic. What would you like to learn about today?`,
-=======
-      content: `Hello! I'm here to help you with **${selectedChapter.title}**. Ask me anything about this chapter - from basic concepts to complex numerical problems. I can explain step-by-step solutions and provide detailed conceptual understanding.`,
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       isBot: true,
       timestamp: new Date(),
     };
@@ -192,11 +184,7 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-<<<<<<< HEAD
     <div className="flex h-full bg-gray-50 dark:bg-gray-900">
-=======
-    <div className="flex h-screen bg-gray-50 dark:bg-gray-900">
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       
       {/* Left Sidebar */}
       <div className="w-80 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 flex flex-col">
