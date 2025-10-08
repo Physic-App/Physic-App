@@ -16,10 +16,10 @@ export const LocalRAGChatInterface: React.FC = () => {
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showBookmarks, setShowBookmarks] = useState(false);
-  const [chatSessions, setChatSessions] = useState<ChatSession[]>(mockChatSessions);
+  const [chatSessions] = useState<ChatSession[]>(mockChatSessions);
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   // Local RAG Chat Hook
   const { sendMessage, isLoading, error } = useLocalRAGChat({
@@ -44,10 +44,6 @@ export const LocalRAGChatInterface: React.FC = () => {
     }
   }, [selectedChapter]);
 
-  const generateChatTitle = (firstMessage: string): string => {
-    const words = firstMessage.split(' ').slice(0, 4);
-    return words.join(' ') + (firstMessage.split(' ').length > 4 ? '...' : '');
-  };
 
   const handleChapterSelect = (chapter: Chapter) => {
     setSelectedChapter(chapter);
@@ -119,13 +115,6 @@ export const LocalRAGChatInterface: React.FC = () => {
     }
   };
 
-  const handleSessionSelect = (sessionId: string) => {
-    const session = chatSessions.find(s => s.id === sessionId);
-    if (session) {
-      setMessages(session.messages);
-      setSelectedSessionId(sessionId);
-    }
-  };
 
   const handleBookmarkToggle = (messageId: string) => {
     setMessages(prev => prev.map(msg => 
@@ -159,10 +148,15 @@ export const LocalRAGChatInterface: React.FC = () => {
         {/* Chat History */}
         <div className="flex-1 overflow-hidden">
           <ChatHistory
-            sessions={chatSessions}
+            chatSessions={chatSessions}
             selectedSessionId={selectedSessionId}
-            onSessionSelect={handleSessionSelect}
-            onNewChat={handleNewChat}
+            onSessionSelect={(session) => {
+              setMessages(session.messages);
+              setSelectedSessionId(session.id);
+            }}
+            onSessionDelete={(sessionId) => {
+              console.log('Delete session:', sessionId);
+            }}
           />
         </div>
 
@@ -209,7 +203,7 @@ export const LocalRAGChatInterface: React.FC = () => {
                 <MessageCard
                   key={message.id}
                   message={message}
-                  onBookmarkToggle={handleBookmarkToggle}
+                  onBookmark={handleBookmarkToggle}
                 />
               ))}
               
@@ -281,8 +275,10 @@ export const LocalRAGChatInterface: React.FC = () => {
       {/* Bookmark Sidebar */}
       {showBookmarks && (
         <BookmarkSidebar
-          messages={bookmarkedMessages}
+          isOpen={showBookmarks}
+          bookmarkedMessages={bookmarkedMessages}
           onClose={() => setShowBookmarks(false)}
+          onRemoveBookmark={handleBookmarkToggle}
         />
       )}
     </div>
