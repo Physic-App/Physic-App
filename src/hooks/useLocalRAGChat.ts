@@ -112,9 +112,12 @@ function generateContextualResponse(question: string, chapterTitle: string): str
     // Friction
     'friction': {
       'what is friction': 'Friction is a force that opposes the relative motion between two surfaces in contact. It acts parallel to the surface and depends on the nature of the surfaces and the normal force.',
+      'how friction works': 'Friction works through microscopic interactions between surfaces. Even smooth surfaces have tiny bumps and irregularities. When two surfaces come in contact, these microscopic features interlock, creating resistance to motion. The force required to overcome this resistance is what we call friction.',
       'types of friction': 'There are three types of friction: 1) Static friction (prevents motion), 2) Kinetic friction (opposes motion), and 3) Rolling friction (opposes rolling motion).',
       'factors affecting friction': 'Friction depends on: 1) Nature of surfaces in contact, 2) Normal force between surfaces, 3) Surface roughness, and 4) Temperature.',
-      'applications of friction': 'Friction is essential for walking, driving, writing, and many other daily activities. It also causes wear and generates heat.'
+      'applications of friction': 'Friction is essential for walking, driving, writing, and many other daily activities. It also causes wear and generates heat.',
+      'friction formula': 'The friction force is calculated as F = μN, where F is friction force, μ (mu) is the coefficient of friction, and N is the normal force.',
+      'coefficient of friction': 'The coefficient of friction is a dimensionless number that represents the ratio of friction force to normal force. It depends on the materials in contact.'
     },
     // Force and Laws of Motion
     'force and laws of motion': {
