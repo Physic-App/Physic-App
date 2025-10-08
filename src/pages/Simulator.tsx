@@ -1,20 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lightbulb, Zap, Gauge } from 'lucide-react';
+import { Zap, Gauge } from 'lucide-react';
 
 const Simulator: React.FC = () => {
   const navigate = useNavigate();
   
   const simulators = [
-    {
-      id: 'light-reflection',
-      title: 'Light: Reflection and Refraction',
-      description: 'Explore how light behaves when it hits mirrors and passes through different materials',
-      icon: Lightbulb,
-      color: 'from-yellow-400 to-orange-500',
-      bgColor: 'bg-yellow-50 dark:bg-yellow-900/20',
-      borderColor: 'border-yellow-200 dark:border-yellow-700'
-    },
     {
       id: 'force-motion',
       title: 'Force and Law of Motion',
@@ -37,9 +28,6 @@ const Simulator: React.FC = () => {
 
   const handleSimulatorClick = (simulatorId: string) => {
     switch (simulatorId) {
-      case 'light-reflection':
-        navigate('/app/simulator/light');
-        break;
       case 'force-motion':
         navigate('/app/simulator/force');
         break;
