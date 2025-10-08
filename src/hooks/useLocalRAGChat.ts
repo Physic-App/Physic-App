@@ -174,6 +174,5 @@ function generateContextualResponse(question: string, chapterTitle: string): str
   }
 
   // Default response for the specific chapter
-  const keywords = Object.keys(chapterResponses);
   return `**From ${chapterTitle} textbook:**\n\nI can help you understand concepts related to ${chapterTitle}. Please ask specific questions about topics like ${keywords.slice(0, 3).join(', ')} or other ${chapterTitle} concepts.`;
 }
