@@ -44,7 +44,6 @@ export const progressService = {
   async markSectionCompleted(chapterId: number, sectionId: number, studyTimeMinutes = 0) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
-<<<<<<< HEAD
       if (!user) {
         console.warn('⚠️ User not authenticated, progress not saved');
         return null;
@@ -61,14 +60,6 @@ export const progressService = {
         }, {
           onConflict: 'user_id,chapter_id,section_id,progress_type'
         });
-=======
-      if (!user) throw new Error('User not authenticated');
-    } catch (error) {
-      // Supabase not available, return mock data
-      return [];
-    }
-
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
       if (error) {
         console.error('❌ Error marking section completed:', error);
@@ -114,7 +105,6 @@ export const progressService = {
         return null;
       }
 
-<<<<<<< HEAD
       const { data, error } = await supabase
         .from('user_progress')
         .upsert({
@@ -126,8 +116,6 @@ export const progressService = {
         }, {
           onConflict: 'user_id,video_id,progress_type'
         });
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
 
       if (error) {
         console.error('❌ Error marking video watched:', error);
