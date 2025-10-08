@@ -16,15 +16,12 @@ const Auth: React.FC = () => {
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-<<<<<<< HEAD
     
     // Check if Supabase is configured first
     if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
       showToast('Authentication not configured. Please add Supabase credentials to your .env file.', 'error');
       return;
     }
-=======
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
     
     if (!email || !password || (isSignUp && !name)) {
       showToast('Please fill in all fields', 'error');
@@ -44,13 +41,9 @@ const Auth: React.FC = () => {
 
 
       if (error) {
-<<<<<<< HEAD
         if (error.message.includes('Supabase not configured')) {
           showToast('Supabase not configured. Please add your credentials to .env file.', 'error');
         } else if (error.message.includes('Invalid login credentials')) {
-=======
-        if (error.message.includes('Invalid login credentials')) {
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
           showToast('Email or password is incorrect. Try signing up if you\'re new!', 'error');
         } else if (error.message.includes('User already registered') || error.message.includes('already registered')) {
           showToast('Account already exists. Try signing in instead!', 'error');
