@@ -1,6 +1,5 @@
 import { Question, MCQQuestion, QuizQuestion, DifficultyLevel } from '../types/test';
 
-<<<<<<< HEAD
 // Question tracking to prevent repetition
 const USED_QUESTIONS_KEY = 'physicsflow_used_questions';
 const MAX_QUESTIONS_PER_TOPIC = 100;
@@ -129,7 +128,6 @@ export class TestService {
       cleanResponse = jsonMatch[0];
     }
     
-<<<<<<< HEAD
     // Don't escape characters - let the JSON parser handle it naturally
     // The issue was that we were double-escaping, making valid JSON invalid
     return cleanResponse;
@@ -495,7 +493,6 @@ Return only the JSON array, no other text.`;
   }
 
   static async generateQuizQuestions(
-<<<<<<< HEAD
     topic: string,
     count: number,
     difficulty: DifficultyLevel

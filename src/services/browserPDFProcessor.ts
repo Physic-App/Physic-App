@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import { localStorageRAG, ChapterData } from './localStorageRAG';
 
 export interface ProcessingResult {

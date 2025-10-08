@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 export interface ChapterData {
   id: string;
   title: string;

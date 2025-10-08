@@ -147,13 +147,8 @@ ${!isBackendHealthy ? '⚠️ *Currently using offline mode. For best results, e
       // Send message to RAG system
       const result = await sendMessage(
         currentInput,
-<<<<<<< HEAD
         selectedChapter.id,
         selectedChapter.title
-=======
-        newMessages,
-        selectedSessionId || undefined
->>>>>>> ec44e8e66d2def0010ef81ca652a2e1ce955ee5f
       );
 
       const botResponse: Message = {
