@@ -139,6 +139,8 @@ function generateContextualResponse(question: string, chapterTitle: string): str
     // Electricity
     'electricity': {
       'what is electricity': 'Electricity is the flow of electric charge through a conductor. It can be static (stationary charges) or current (moving charges).',
+      'how its work': 'Electricity works through the movement of electrons: 1) Electrons flow from areas of high potential (voltage) to low potential, 2) This flow creates electric current, measured in Amperes (A), 3) Voltage provides the "pressure" to push electrons through conductors, 4) Resistance opposes the flow - good conductors (like copper) have low resistance, insulators have high resistance, 5) Ohm\'s Law: V = I × R (Voltage = Current × Resistance)',
+      'how it works': 'Electricity works through the movement of electrons: 1) Electrons flow from areas of high potential (voltage) to low potential, 2) This flow creates electric current, measured in Amperes (A), 3) Voltage provides the "pressure" to push electrons through conductors, 4) Resistance opposes the flow - good conductors (like copper) have low resistance, insulators have high resistance, 5) Ohm\'s Law: V = I × R (Voltage = Current × Resistance)',
       'current': 'Electric current is the flow of electric charge per unit time, measured in Amperes (A).',
       'voltage': 'Voltage is the electric potential difference between two points, measured in Volts (V).',
       'resistance': 'Resistance is the opposition to the flow of electric current, measured in Ohms (Ω).'
@@ -149,6 +151,36 @@ function generateContextualResponse(question: string, chapterTitle: string): str
       'reflection': 'Reflection is the bouncing back of light when it hits a surface. The angle of incidence equals the angle of reflection.',
       'refraction': 'Refraction is the bending of light when it passes from one medium to another due to change in speed.',
       'lens': 'A lens is a transparent material that refracts light to form images. Convex lenses converge light, concave lenses diverge light.'
+    },
+    // Gravitation
+    'gravitation': {
+      'what is gravitation': 'Gravitation is the force of attraction between any two masses in the universe. It is one of the fundamental forces of nature.',
+      'what is the law of gravitation': 'Newton\'s Law of Gravitation states that every particle in the universe attracts every other particle with a force that is directly proportional to the product of their masses and inversely proportional to the square of the distance between them. F = G(m1×m2)/r²',
+      'what is the universal law of gravitation': 'The Universal Law of Gravitation states that every particle in the universe attracts every other particle with a force that is directly proportional to the product of their masses and inversely proportional to the square of the distance between them. F = G(m1×m2)/r², where G is the gravitational constant (6.674 × 10⁻¹¹ N⋅m²/kg²).',
+      'gravitational force': 'Gravitational force is the attractive force between two masses. It depends on the masses of the objects and the distance between them.',
+      'weight': 'Weight is the gravitational force exerted on an object by a massive body (like Earth). It is calculated as W = mg, where m is mass and g is acceleration due to gravity.',
+      'acceleration due to gravity': 'Acceleration due to gravity (g) is the acceleration experienced by objects in free fall near Earth\'s surface. On Earth, g ≈ 9.8 m/s².'
+    },
+    // Work and Energy
+    'work and energy': {
+      'what is work': 'Work is done when a force causes displacement of an object in the direction of the force. Work = Force × Displacement × cos(θ), where θ is the angle between force and displacement.',
+      'what is energy': 'Energy is the capacity to do work. It exists in various forms: kinetic energy, potential energy, thermal energy, etc. Energy cannot be created or destroyed, only transformed.',
+      'kinetic energy': 'Kinetic energy is the energy possessed by an object due to its motion. KE = (1/2)mv², where m is mass and v is velocity.',
+      'potential energy': 'Potential energy is stored energy due to position or configuration. Gravitational PE = mgh, where m is mass, g is gravity, and h is height.',
+      'conservation of energy': 'The law of conservation of energy states that energy cannot be created or destroyed, only transformed from one form to another. Total energy remains constant in a closed system.',
+      'power': 'Power is the rate of doing work. Power = Work/Time = Energy/Time. Unit is Watt (W) or J/s.',
+      'work energy theorem': 'The work-energy theorem states that the work done on an object equals the change in its kinetic energy. W = ΔKE = (1/2)mv² - (1/2)mu²'
+    },
+    // Magnetic Effects of Electric Current
+    'magnetic effects of electric current': {
+      'what is magnetic effect': 'Magnetic effect of electric current refers to the creation of magnetic field around a current-carrying conductor. Moving charges (current) produce magnetic fields.',
+      'electromagnet': 'An electromagnet is a magnet created by passing electric current through a coil of wire wrapped around a magnetic material (like iron). The magnetic field disappears when current stops.',
+      'electric motor': 'An electric motor converts electrical energy into mechanical energy using the magnetic effect of current. It uses the interaction between magnetic field and current-carrying conductor.',
+      'electric generator': 'An electric generator converts mechanical energy into electrical energy using electromagnetic induction. It produces electric current by moving a conductor in a magnetic field.',
+      'electromagnetic induction': 'Electromagnetic induction is the process of generating electric current in a conductor by changing the magnetic field around it. Discovered by Michael Faraday.',
+      'faraday law': 'Faraday\'s law states that the induced emf in a circuit is directly proportional to the rate of change of magnetic flux through the circuit. E = -dΦ/dt.',
+      'lenz law': 'Lenz\'s law states that the direction of induced current opposes the change causing it. This ensures conservation of energy in electromagnetic induction.',
+      'transformer': 'A transformer is a device that changes the voltage of alternating current using electromagnetic induction. It consists of primary and secondary coils with a common iron core.'
     }
   };
 
