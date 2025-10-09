@@ -106,6 +106,8 @@ function generateContextualResponse(question: string, chapterTitle: string): str
     'force and pressure': {
       'what is force': 'Force is a push or pull that can change the state of motion of an object. It is measured in Newtons (N).',
       'what is pressure': 'Pressure is the force applied per unit area. It is measured in Pascals (Pa) and calculated as P = F/A.',
+      'how its work': 'Force and pressure work together in physics: 1) Force causes changes in motion (acceleration, deceleration, direction changes), 2) Pressure distributes force over an area - smaller area means higher pressure, 3) When you push a nail, the force creates high pressure at the sharp tip, allowing it to penetrate materials, 4) In hydraulic systems, pressure is transmitted equally in all directions, allowing small forces to create large effects.',
+      'how it works': 'Force and pressure work together in physics: 1) Force causes changes in motion (acceleration, deceleration, direction changes), 2) Pressure distributes force over an area - smaller area means higher pressure, 3) When you push a nail, the force creates high pressure at the sharp tip, allowing it to penetrate materials, 4) In hydraulic systems, pressure is transmitted equally in all directions, allowing small forces to create large effects.',
       'newton laws': 'Newton\'s laws of motion describe the relationship between forces and motion: 1) Objects at rest stay at rest, 2) F=ma, 3) Action and reaction are equal and opposite.',
       'friction': 'Friction is a force that opposes the relative motion between two surfaces in contact. It depends on the nature of surfaces and normal force.'
     },
