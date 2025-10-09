@@ -66,6 +66,14 @@ export const progressService = {
         return null;
       }
 
+      // Also log this activity for streak tracking
+      try {
+        await activityService.logSectionCompleted(studyTimeMinutes);
+      } catch (activityError) {
+        console.warn('⚠️ Failed to log section activity:', activityError);
+        // Don't throw - progress tracking should still work even if activity logging fails
+      }
+
       return data;
     } catch (error) {
       console.warn('⚠️ Supabase not available, saving to local storage:', error);
@@ -84,15 +92,6 @@ export const progressService = {
       }
       
       return null;
-    }
-    
-    
-    // Also log this activity for streak tracking
-    try {
-      await activityService.logSectionCompleted(studyTimeMinutes);
-    } catch (activityError) {
-      console.warn('⚠️ Failed to log section activity:', activityError);
-      // Don't throw - progress tracking should still work even if activity logging fails
     }
   },
 
@@ -122,6 +121,14 @@ export const progressService = {
         return null;
       }
 
+      // Also log this activity for streak tracking
+      try {
+        await activityService.logVideoWatched(studyTimeMinutes);
+      } catch (activityError) {
+        console.warn('⚠️ Failed to log video activity:', activityError);
+        // Don't throw - progress tracking should still work even if activity logging fails
+      }
+
       return data;
     } catch (error) {
       console.warn('⚠️ Supabase not available, saving to local storage:', error);
@@ -140,15 +147,6 @@ export const progressService = {
       }
       
       return null;
-    }
-    
-    
-    // Also log this activity for streak tracking
-    try {
-      await activityService.logVideoWatched(studyTimeMinutes);
-    } catch (activityError) {
-      console.warn('⚠️ Failed to log video activity:', activityError);
-      // Don't throw - progress tracking should still work even if activity logging fails
     }
   },
 
